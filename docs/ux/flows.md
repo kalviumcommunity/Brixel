@@ -396,4 +396,4 @@ This UX will later guide implementation in a structured way:
 - Firebase services will be planned around report submission, retrieval, and access rules, without assuming any final implementation here.
 - Access-control behavior will be designed around site permissions rather than universal access.
 
-This mock UX is the design foundation that implementation should reference before screens and backend logic are built.
+This mock UX is the design foundation that implementation should reference before screens and backend logic are built
