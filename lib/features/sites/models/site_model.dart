@@ -29,7 +29,9 @@ class SiteModel {
       'expectedHeadcount': expectedHeadcount,
       'assignedSupervisorIds': assignedSupervisorIds,
       'createdAt': Timestamp.fromDate(createdAt),
-      'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : FieldValue.serverTimestamp(),
+      'updatedAt': updatedAt != null
+          ? Timestamp.fromDate(updatedAt!)
+          : FieldValue.serverTimestamp(),
     };
   }
 
@@ -40,7 +42,9 @@ class SiteModel {
       location: map['location'] as String? ?? '',
       status: map['status'] as String? ?? 'active',
       expectedHeadcount: (map['expectedHeadcount'] as num?)?.toInt() ?? 0,
-      assignedSupervisorIds: List<String>.from(map['assignedSupervisorIds'] ?? []),
+      assignedSupervisorIds: List<String>.from(
+        map['assignedSupervisorIds'] ?? [],
+      ),
       createdAt: (map['createdAt'] is Timestamp)
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),
@@ -71,7 +75,8 @@ class SiteModel {
       location: location ?? this.location,
       status: status ?? this.status,
       expectedHeadcount: expectedHeadcount ?? this.expectedHeadcount,
-      assignedSupervisorIds: assignedSupervisorIds ?? this.assignedSupervisorIds,
+      assignedSupervisorIds:
+          assignedSupervisorIds ?? this.assignedSupervisorIds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
