@@ -3,9 +3,5 @@ class Site {
   final String name;
   final String location;
 
-  const Site({
-    required this.id,
-    required this.name,
-    required this.location,
-  });
+  const Site({required this.id, required this.name, required this.location});
 }

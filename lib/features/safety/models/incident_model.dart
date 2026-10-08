@@ -3,7 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class IncidentModel {
   final String id;
   final String siteId;
-  final String incidentType; // 'injury' | 'near_miss' | 'equipment_failure' | 'hazard'
+  final String
+  incidentType; // 'injury' | 'near_miss' | 'equipment_failure' | 'hazard'
   final String severity; // 'low' | 'medium' | 'high' | 'critical'
   final String description;
   final String? photoUrl; // Firebase Storage URL

@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../../features/auth/models/user_model.dart';
 import '../../features/sites/models/site_model.dart';
 import '../../features/attendance/models/attendance_model.dart';
@@ -11,7 +12,7 @@ class FirestoreDatabaseService {
   final FirebaseFirestore _firestore;
 
   FirestoreDatabaseService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+    : _firestore = firestore ?? FirebaseFirestore.instance;
 
   // Collection References
   CollectionReference<Map<String, dynamic>> get usersCollection =>
@@ -114,7 +115,8 @@ class FirestoreDatabaseService {
       'siteId': 'site_metro_line1',
       'incidentType': 'equipment_failure',
       'severity': 'high',
-      'description': 'Hydraulic oil leakage detected on Crane #2 hydraulic arm.',
+      'description':
+          'Hydraulic oil leakage detected on Crane #2 hydraulic arm.',
       'photoUrl': 'https://firebasestorage.googleapis.com/v0/b/brixel-app.appspot.com/o/incidents%2Fcrane_leak.jpg',
       'status': 'reported',
       'reportedBy': 'usr_sup_101',
@@ -140,21 +142,27 @@ class FirestoreDatabaseService {
     return sitesCollection
         .where(FieldPath.documentId, whereIn: siteIds)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => SiteModel.fromDocument(doc))
-            .toList());
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => SiteModel.fromDocument(doc)).toList(),
+        );
   }
 
   /// Real-time stream of today's attendance for a specific site (Supervisor view)
-  Stream<List<AttendanceRecordModel>> streamDailyAttendance(String siteId, String date) {
+  Stream<List<AttendanceRecordModel>> streamDailyAttendance(
+    String siteId,
+    String date,
+  ) {
     return attendanceCollection
         .where('siteId', isEqualTo: siteId)
         .where('date', isEqualTo: date)
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => AttendanceRecordModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AttendanceRecordModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   /// Real-time stream of materials below reorder threshold (Manager alert view)
@@ -162,10 +170,12 @@ class FirestoreDatabaseService {
     return materialsCollection
         .where('siteId', isEqualTo: siteId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MaterialItemModel.fromMap(doc.data(), doc.id))
-            .where((item) => item.isLowStock)
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => MaterialItemModel.fromMap(doc.data(), doc.id))
+              .where((item) => item.isLowStock)
+              .toList(),
+        );
   }
 
   /// Real-time stream of active / high-severity incidents across sites (Manager dashboard)
@@ -175,8 +185,10 @@ class FirestoreDatabaseService {
         .where('status', isEqualTo: 'reported')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => IncidentModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => IncidentModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 }

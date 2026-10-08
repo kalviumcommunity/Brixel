@@ -3,6 +3,7 @@ import 'package:brixel/features/auth/models/user_profile.dart';
 import 'package:brixel/features/materials/models/material_usage.dart';
 import 'package:brixel/features/safety/models/safety_incident.dart';
 import 'package:brixel/features/sites/models/site.dart';
+import 'package:flutter/foundation.dart';
 
 void main() {
   final user = UserProfile(
@@ -40,17 +41,17 @@ void main() {
     recordedAt: DateTime(2026, 10, 6, 14, 20),
   );
 
-  print('User: ${user.name} (${user.role})');
-  print('Site: ${site.name}, ${site.location}');
-  print(
+  debugPrint('User: ${user.name} (${user.role})');
+  debugPrint('Site: ${site.name}, ${site.location}');
+  debugPrint(
     'Attendance: ${attendance.presentWorkers}/${attendance.expectedWorkers} '
     'present, ${attendance.absentWorkers} absent',
   );
-  print(
+  debugPrint(
     'Material used: ${materialUsage.quantity} ${materialUsage.unit} '
     'of ${materialUsage.materialName}',
   );
-  print(
+  debugPrint(
     'Safety incident: ${safetyIncident.description} '
     '(${safetyIncident.severity})',
   );

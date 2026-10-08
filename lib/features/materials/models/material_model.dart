@@ -105,7 +105,10 @@ class MaterialTransactionModel {
     };
   }
 
-  factory MaterialTransactionModel.fromMap(Map<String, dynamic> map, String id) {
+  factory MaterialTransactionModel.fromMap(
+    Map<String, dynamic> map,
+    String id,
+  ) {
     return MaterialTransactionModel(
       id: id,
       materialId: map['materialId'] as String? ?? '',
