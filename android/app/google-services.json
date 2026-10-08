@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "603215333215",
+    "project_id": "brixel-93861",
+    "storage_bucket": "brixel-93861.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:603215333215:android:bd53eb4aa2bd079dd998ea",
+        "android_client_info": {
+          "package_name": "com.example.brixel"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvXRr0bgre9FVg_pHNpbwK7si0D1fnjWY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
