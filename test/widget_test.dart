@@ -1,30 +1,68 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
+import 'package:brixel/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:brixel/main.dart';
-
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
+  testWidgets('selected site is preserved across bottom navigation', (
+    WidgetTester tester,
+  ) async {
     await tester.pumpWidget(const MyApp());
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('Select a site'), findsOneWidget);
+    expect(find.text('Jaipur Residential Project'), findsOneWidget);
+    expect(find.text('Ajmer Commercial Project'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Open the first site.
+    await tester.tap(find.text('Open site').first);
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Site overview'), findsOneWidget);
+    expect(find.text('Jaipur Residential Project'), findsWidgets);
+
+    // Open Attendance from the bottom navigation bar.
+    final attendanceTab = find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.text('Attendance'),
+    );
+
+    expect(attendanceTab, findsOneWidget);
+
+    await tester.tap(attendanceTab);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Jaipur Residential Project'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Attendance reporting for Jaipur Residential Project',
+      ),
+      findsOneWidget,
+    );
+
+    // Return to site selection.
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+
+    expect(find.text('Select a site'), findsOneWidget);
+
+    // Open the second site.
+    await tester.tap(find.text('Open site').last);
+    await tester.pumpAndSettle();
+
+    final safetyTab = find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.text('Safety'),
+    );
+
+    expect(safetyTab, findsOneWidget);
+
+    await tester.tap(safetyTab);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ajmer Commercial Project'), findsOneWidget);
+    expect(
+      find.textContaining('Safety reporting for Ajmer Commercial Project'),
+      findsOneWidget,
+    );
   });
 }
