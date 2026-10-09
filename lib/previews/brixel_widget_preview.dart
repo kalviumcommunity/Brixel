@@ -3,6 +3,7 @@ import 'package:brixel/shared/widgets/brixel_metric_card.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
+import 'package:brixel/shared/widgets/brixel_worker_card.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -59,6 +60,27 @@ class BrixelWidgetPreviewApp extends StatelessWidget {
                       value: '8',
                       subtitle: 'this week',
                       icon: Icons.description_outlined,
+                    ),
+                    const SizedBox(height: 20),
+                    const BrixelSectionTitle(
+                      title: 'Attendance',
+                      subtitle: 'Active workers on site',
+                    ),
+                    const SizedBox(height: 14),
+                    BrixelWorkerCard(
+                      name: 'Ramesh Kumar',
+                      role: 'Mason',
+                      workerId: 'W-001',
+                      status: 'Present',
+                      onTap: () {},
+                    ),
+                    const SizedBox(height: 10),
+                    BrixelWorkerCard(
+                      name: 'Suresh Yadav',
+                      role: 'Helper',
+                      workerId: 'W-002',
+                      status: 'Present',
+                      onTap: () {},
                     ),
                     const SizedBox(height: 20),
                     BrixelSectionCard(
