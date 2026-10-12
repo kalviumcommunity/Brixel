@@ -11,4 +11,14 @@ class FirebaseAuthService {
   Stream<User?> authStateChanges() {
     return _firebaseAuth.authStateChanges();
   }
+
+  Future<UserCredential> signUp({
+    required String email,
+    required String password,
+  }) async {
+    return _firebaseAuth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password,
+    );
+  }
 }
