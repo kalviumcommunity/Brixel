@@ -1,3 +1,4 @@
+import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
@@ -33,22 +34,50 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
       return;
     }
 
-    final payload = {
-      'materialName': _materialController.text.trim(),
-      'quantity': _quantityController.text.trim(),
-      'unit': _selectedUnit,
-      'notes': _notesController.text.trim(),
-    };
+    try {
+      final quantityRaw = _quantityController.text.trim();
+      final quantity = double.parse(quantityRaw);
 
-    final materialName = payload['materialName'] as String;
+      if (quantity <= 0) {
+        throw const FormatException('Quantity must be greater than zero.');
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Material usage recorded locally for $materialName'),
-      ),
-    );
+      final payload = {
+        'materialName': _materialController.text.trim(),
+        'quantity': quantity,
+        'unit': _selectedUnit,
+        'notes': _notesController.text.trim(),
+      };
 
-    debugPrint('Material form submitted: $payload');
+      final materialName = payload['materialName'] as String;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Material usage recorded locally for $materialName'),
+          backgroundColor: BrixelColors.success,
+        ),
+      );
+
+      debugPrint('Material form submitted: $payload');
+    } on FormatException catch (e) {
+      debugPrint(
+        'FormatException caught during material submission: ${e.message}',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter a valid quantity: ${e.message}'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Unexpected error caught during material submission: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: $e'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    }
   }
 
   @override
@@ -106,9 +135,6 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter the quantity.';
-                        }
-                        if (double.tryParse(value.trim()) == null) {
-                          return 'Please enter a valid number.';
                         }
                         return null;
                       },

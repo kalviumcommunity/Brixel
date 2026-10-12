@@ -1,3 +1,4 @@
+import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
@@ -33,20 +34,52 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
       return;
     }
 
-    final payload = {
-      'workerName': _workerController.text.trim(),
-      'trade': _tradeController.text.trim(),
-      'status': _selectedStatus,
-      'hoursWorked': _hoursController.text.trim(),
-    };
+    try {
+      final hoursRaw = _hoursController.text.trim();
+      final hoursWorked = double.parse(hoursRaw);
 
-    final workerName = payload['workerName'] as String;
+      if (hoursWorked <= 0 || hoursWorked > 24) {
+        throw const FormatException(
+          'Hours worked must be between 0.5 and 24.',
+        );
+      }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Attendance recorded locally for $workerName')),
-    );
+      final payload = {
+        'workerName': _workerController.text.trim(),
+        'trade': _tradeController.text.trim(),
+        'status': _selectedStatus,
+        'hoursWorked': hoursWorked,
+      };
 
-    debugPrint('Attendance form submitted: $payload');
+      final workerName = payload['workerName'] as String;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Attendance recorded locally for $workerName'),
+          backgroundColor: BrixelColors.success,
+        ),
+      );
+
+      debugPrint('Attendance form submitted: $payload');
+    } on FormatException catch (e) {
+      debugPrint(
+        'FormatException caught during attendance submission: ${e.message}',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please enter a valid number of hours: ${e.message}'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    } catch (e) {
+      debugPrint('Unexpected error caught during attendance submission: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: $e'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    }
   }
 
   @override
@@ -148,9 +181,6 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Please enter hours worked.';
-                        }
-                        if (double.tryParse(value.trim()) == null) {
-                          return 'Please enter a valid number.';
                         }
                         return null;
                       },
