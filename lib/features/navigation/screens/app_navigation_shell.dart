@@ -1,3 +1,6 @@
+import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
+import 'package:brixel/features/materials/screens/material_form_screen.dart';
+import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_dashboard_screen.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
@@ -23,27 +26,9 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
 
     _screens = [
       SiteDashboardScreen(site: widget.site),
-      _ModulePlaceholderScreen(
-        title: 'Attendance',
-        description:
-            'Attendance reporting for ${widget.site.name} will be connected in its assigned task.',
-        icon: Icons.badge_outlined,
-        site: widget.site,
-      ),
-      _ModulePlaceholderScreen(
-        title: 'Materials',
-        description:
-            'Material-usage reporting for ${widget.site.name} will be connected in its assigned task.',
-        icon: Icons.inventory_2_outlined,
-        site: widget.site,
-      ),
-      _ModulePlaceholderScreen(
-        title: 'Safety',
-        description:
-            'Safety reporting for ${widget.site.name} will be connected in its assigned task.',
-        icon: Icons.warning_amber_outlined,
-        site: widget.site,
-      ),
+      AttendanceFormScreen(siteName: widget.site.name),
+      MaterialFormScreen(siteName: widget.site.name),
+      SafetyIncidentFormScreen(siteName: widget.site.name),
       _ModulePlaceholderScreen(
         title: 'More',
         description:
