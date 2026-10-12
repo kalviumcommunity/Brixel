@@ -1,3 +1,4 @@
+import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
@@ -33,20 +34,52 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
       return;
     }
 
-    final payload = {
-      'location': _locationController.text.trim(),
-      'incidentType': _selectedIncidentType,
-      'severity': _selectedSeverity,
-      'description': _descriptionController.text.trim(),
-    };
+    try {
+      final description = _descriptionController.text.trim();
+      if (description.length < 5) {
+        throw const FormatException(
+          'Incident description must be at least 5 characters long.',
+        );
+      }
 
-    final location = payload['location'] as String;
+      final payload = {
+        'location': _locationController.text.trim(),
+        'incidentType': _selectedIncidentType,
+        'severity': _selectedSeverity,
+        'description': description,
+      };
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Safety incident reported for $location')),
-    );
+      final location = payload['location'] as String;
 
-    debugPrint('Safety form submitted: $payload');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Safety incident reported for $location'),
+          backgroundColor: BrixelColors.success,
+        ),
+      );
+
+      debugPrint('Safety form submitted: $payload');
+    } on FormatException catch (e) {
+      debugPrint(
+        'FormatException caught during safety incident submission: ${e.message}',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invalid incident details: ${e.message}'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    } catch (e) {
+      debugPrint(
+        'Unexpected error caught during safety incident submission: $e',
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('An unexpected error occurred: $e'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    }
   }
 
   @override
