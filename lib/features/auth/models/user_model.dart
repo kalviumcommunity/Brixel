@@ -4,7 +4,7 @@ class UserModel {
   final String uid;
   final String email;
   final String displayName;
-  final String role; // 'supervisor' | 'manager'
+  final String role; // 'pending' | 'supervisor' | 'manager'
   final List<String> assignedSiteIds;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -38,7 +38,7 @@ class UserModel {
       uid: id,
       email: map['email'] as String? ?? '',
       displayName: map['displayName'] as String? ?? '',
-      role: map['role'] as String? ?? 'supervisor',
+      role: map['role'] as String? ?? 'pending',
       assignedSiteIds: List<String>.from(map['assignedSiteIds'] ?? []),
       createdAt: (map['createdAt'] is Timestamp)
           ? (map['createdAt'] as Timestamp).toDate()
