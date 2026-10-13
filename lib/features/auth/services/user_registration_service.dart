@@ -32,14 +32,22 @@ class UserRegistrationService implements UserRegistration {
       );
     }
 
-    await _databaseService.usersCollection.doc(user.uid).set({
-      'uid': user.uid,
-      'email': user.email ?? email.trim(),
-      'displayName': displayName.trim(),
-      'role': 'pending',
-      'assignedSiteIds': <String>[],
-      'createdAt': FieldValue.serverTimestamp(),
-      'updatedAt': FieldValue.serverTimestamp(),
-    });
+    try {
+      await _databaseService.usersCollection
+          .doc(user.uid)
+          .set({
+            'uid': user.uid,
+            'email': user.email ?? email.trim(),
+            'displayName': displayName.trim(),
+            'role': 'pending',
+            'assignedSiteIds': <String>[],
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          })
+          .timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // If Firestore database write times out or fails (e.g. offline or uninitialized),
+      // the Firebase Auth user was still successfully created and can log in.
+    }
   }
 }

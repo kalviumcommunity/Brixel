@@ -1,12 +1,18 @@
+import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/services/user_registration.dart';
 import 'package:brixel/features/auth/services/user_registration_service.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:flutter/material.dart';
 
 class SignUpScreen extends StatefulWidget {
-  const SignUpScreen({super.key, this.registrationService});
+  const SignUpScreen({
+    super.key,
+    this.registrationService,
+    this.loginScreenBuilder,
+  });
 
   final UserRegistration? registrationService;
+  final WidgetBuilder? loginScreenBuilder;
 
   @override
   State<SignUpScreen> createState() => _SignUpScreenState();
@@ -70,6 +76,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
         ),
       );
+
+      if (Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
     } catch (error) {
       if (!mounted) {
         return;
@@ -217,6 +227,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       : 'Create account',
                   icon: Icons.person_add_outlined,
                   onPressed: _isSubmitting ? null : _submit,
+                ),
+                const SizedBox(height: 16),
+                Center(
+                  child: TextButton(
+                    key: const Key('goToLoginButton'),
+                    onPressed: () {
+                      if (Navigator.canPop(context)) {
+                        Navigator.pop(context);
+                      } else {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const LoginScreen(),
+                          ),
+                        );
+                      }
+                    },
+                    child: const Text('Already have an account? Log in'),
+                  ),
                 ),
               ],
             ),

@@ -1,4 +1,6 @@
 import 'package:brixel/core/theme/brixel_theme.dart';
+import 'package:brixel/features/auth/screens/login_screen.dart';
+import 'package:brixel/features/auth/screens/sign_up_screen.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -10,18 +12,25 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const MyApp());
+  runApp(const MyApp(home: LoginScreen()));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({super.key, this.home = const SiteSelectionScreen()});
+
+  final Widget home;
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Brixel',
       theme: buildBrixelTheme(),
-      home: const SiteSelectionScreen(),
+      home: home,
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/signup': (context) => const SignUpScreen(),
+        '/sites': (context) => const SiteSelectionScreen(),
+      },
     );
   }
 }
