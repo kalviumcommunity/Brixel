@@ -34,52 +34,24 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
       return;
     }
 
-    try {
-      final description = _descriptionController.text.trim();
-      if (description.length < 5) {
-        throw const FormatException(
-          'Incident description must be at least 5 characters long.',
-        );
-      }
+    final description = _descriptionController.text.trim();
+    final payload = {
+      'location': _locationController.text.trim(),
+      'incidentType': _selectedIncidentType,
+      'severity': _selectedSeverity,
+      'description': description,
+    };
 
-      final payload = {
-        'location': _locationController.text.trim(),
-        'incidentType': _selectedIncidentType,
-        'severity': _selectedSeverity,
-        'description': description,
-      };
+    final location = payload['location'] as String;
 
-      final location = payload['location'] as String;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Safety incident reported for $location'),
+        backgroundColor: BrixelColors.success,
+      ),
+    );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Safety incident reported for $location'),
-          backgroundColor: BrixelColors.success,
-        ),
-      );
-
-      debugPrint('Safety form submitted: $payload');
-    } on FormatException catch (e) {
-      debugPrint(
-        'FormatException caught during safety incident submission: ${e.message}',
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Invalid incident details: ${e.message}'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    } catch (e) {
-      debugPrint(
-        'Unexpected error caught during safety incident submission: $e',
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An unexpected error occurred: $e'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    }
+    debugPrint('Safety form submitted: $payload');
   }
 
   @override
@@ -200,9 +172,14 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
+                        final description = value?.trim() ?? '';
+                        if (description.isEmpty) {
                           return 'Please describe the incident.';
                         }
+                        if (description.length < 5) {
+                          return 'Description must be at least 5 characters.';
+                        }
+
                         return null;
                       },
                     ),

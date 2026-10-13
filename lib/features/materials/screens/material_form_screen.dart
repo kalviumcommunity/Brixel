@@ -34,50 +34,24 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
       return;
     }
 
-    try {
-      final quantityRaw = _quantityController.text.trim();
-      final quantity = double.parse(quantityRaw);
+    final quantity = double.parse(_quantityController.text.trim());
+    final payload = {
+      'materialName': _materialController.text.trim(),
+      'quantity': quantity,
+      'unit': _selectedUnit,
+      'notes': _notesController.text.trim(),
+    };
 
-      if (quantity <= 0) {
-        throw const FormatException('Quantity must be greater than zero.');
-      }
+    final materialName = payload['materialName'] as String;
 
-      final payload = {
-        'materialName': _materialController.text.trim(),
-        'quantity': quantity,
-        'unit': _selectedUnit,
-        'notes': _notesController.text.trim(),
-      };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Material usage recorded locally for $materialName'),
+        backgroundColor: BrixelColors.success,
+      ),
+    );
 
-      final materialName = payload['materialName'] as String;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Material usage recorded locally for $materialName'),
-          backgroundColor: BrixelColors.success,
-        ),
-      );
-
-      debugPrint('Material form submitted: $payload');
-    } on FormatException catch (e) {
-      debugPrint(
-        'FormatException caught during material submission: ${e.message}',
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a valid quantity: ${e.message}'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    } catch (e) {
-      debugPrint('Unexpected error caught during material submission: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An unexpected error occurred: $e'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    }
+    debugPrint('Material form submitted: $payload');
   }
 
   @override
@@ -133,9 +107,19 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
                         border: OutlineInputBorder(),
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
+                        final raw = value?.trim() ?? '';
+                        if (raw.isEmpty) {
                           return 'Please enter the quantity.';
                         }
+
+                        final quantity = double.tryParse(raw);
+                        if (quantity == null) {
+                          return 'Please enter a valid number.';
+                        }
+                        if (quantity <= 0) {
+                          return 'Quantity must be greater than zero.';
+                        }
+
                         return null;
                       },
                     ),
