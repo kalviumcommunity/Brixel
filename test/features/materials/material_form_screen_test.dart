@@ -40,4 +40,63 @@ void main() {
     expect(find.text('Cement'), findsOneWidget);
     expect(find.text('Used for slab work'), findsOneWidget);
   });
+
+  testWidgets('material name and quantity are required', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+
+    await tester.tap(find.text('Submit Material Usage'));
+    await tester.pump();
+
+    expect(find.text('Please enter the material name.'), findsOneWidget);
+    expect(find.text('Please enter the quantity.'), findsOneWidget);
+  });
+
+  testWidgets('quantity must be numeric and greater than zero', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Material Name'),
+      'Cement',
+    );
+
+    final quantityField = find.widgetWithText(TextFormField, 'Quantity');
+    for (final entry in {
+      'abc': 'Please enter a valid number.',
+      '0': 'Quantity must be greater than zero.',
+      '-1': 'Quantity must be greater than zero.',
+    }.entries) {
+      await tester.enterText(quantityField, entry.key);
+      await tester.tap(find.text('Submit Material Usage'));
+      await tester.pump();
+      expect(find.text(entry.value), findsOneWidget);
+    }
+
+    await tester.enterText(quantityField, '35');
+    await tester.tap(find.text('Submit Material Usage'));
+    await tester.pump();
+
+    expect(
+      find.text('Material usage recorded locally for Cement'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('material notes are optional', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Material Name'),
+      'Cement',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Quantity'),
+      '35',
+    );
+
+    await tester.tap(find.text('Submit Material Usage'));
+    await tester.pump();
+
+    expect(
+      find.text('Material usage recorded locally for Cement'),
+      findsOneWidget,
+    );
+  });
 }

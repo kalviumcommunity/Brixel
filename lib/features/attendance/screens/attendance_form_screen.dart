@@ -34,52 +34,24 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
       return;
     }
 
-    try {
-      final hoursRaw = _hoursController.text.trim();
-      final hoursWorked = double.parse(hoursRaw);
+    final hoursWorked = double.parse(_hoursController.text.trim());
+    final payload = {
+      'workerName': _workerController.text.trim(),
+      'trade': _tradeController.text.trim(),
+      'status': _selectedStatus,
+      'hoursWorked': hoursWorked,
+    };
 
-      if (hoursWorked <= 0 || hoursWorked > 24) {
-        throw const FormatException(
-          'Hours worked must be between 0.5 and 24.',
-        );
-      }
+    final workerName = payload['workerName'] as String;
 
-      final payload = {
-        'workerName': _workerController.text.trim(),
-        'trade': _tradeController.text.trim(),
-        'status': _selectedStatus,
-        'hoursWorked': hoursWorked,
-      };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Attendance recorded locally for $workerName'),
+        backgroundColor: BrixelColors.success,
+      ),
+    );
 
-      final workerName = payload['workerName'] as String;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Attendance recorded locally for $workerName'),
-          backgroundColor: BrixelColors.success,
-        ),
-      );
-
-      debugPrint('Attendance form submitted: $payload');
-    } on FormatException catch (e) {
-      debugPrint(
-        'FormatException caught during attendance submission: ${e.message}',
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a valid number of hours: ${e.message}'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    } catch (e) {
-      debugPrint('Unexpected error caught during attendance submission: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An unexpected error occurred: $e'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    }
+    debugPrint('Attendance form submitted: $payload');
   }
 
   @override
@@ -179,9 +151,19 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                         hintText: '8.0',
                       ),
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
+                        final raw = value?.trim() ?? '';
+                        if (raw.isEmpty) {
                           return 'Please enter hours worked.';
                         }
+
+                        final hours = double.tryParse(raw);
+                        if (hours == null) {
+                          return 'Please enter a valid number.';
+                        }
+                        if (hours <= 0 || hours > 24) {
+                          return 'Hours worked must be greater than 0 and at most 24.';
+                        }
+
                         return null;
                       },
                     ),

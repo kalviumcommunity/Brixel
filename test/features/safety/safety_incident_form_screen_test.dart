@@ -42,4 +42,52 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('safety location and description are required', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SafetyIncidentFormScreen()),
+    );
+
+    await tester.tap(find.text('Submit Incident'));
+    await tester.pump();
+
+    expect(
+      find.text('Please enter the location or site area.'),
+      findsOneWidget,
+    );
+    expect(find.text('Please describe the incident.'), findsOneWidget);
+  });
+
+  testWidgets('safety description requires at least five characters', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(home: SafetyIncidentFormScreen()),
+    );
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Location / Site Area'),
+      'Level 2 slab',
+    );
+    final descriptionField = find.widgetWithText(TextFormField, 'Description');
+
+    await tester.enterText(descriptionField, 'Slip');
+    await tester.tap(find.text('Submit Incident'));
+    await tester.pump();
+
+    expect(
+      find.text('Description must be at least 5 characters.'),
+      findsOneWidget,
+    );
+
+    await tester.enterText(descriptionField, 'Valid incident description');
+    await tester.drag(find.byType(ListView), const Offset(0, -250));
+    await tester.pump();
+    await tester.tap(find.text('Submit Incident'));
+    await tester.pump();
+
+    expect(
+      find.text('Safety incident reported for Level 2 slab'),
+      findsOneWidget,
+    );
+  });
 }
