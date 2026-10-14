@@ -33,6 +33,15 @@ class FakeSiteRepository implements SiteRepository {
 
     return Stream.value(assignedSites);
   }
+
+  @override
+  Stream<List<SiteModel>> watchSitesForSupervisor(String supervisorId) {
+    final assignedSites = sites
+        .where((site) => site.assignedSupervisorIds.contains(supervisorId))
+        .toList();
+
+    return Stream.value(assignedSites);
+  }
 }
 
 void main() {
@@ -75,6 +84,7 @@ void main() {
         location: 'Jaipur',
         status: 'active',
         expectedHeadcount: 50,
+        assignedSupervisorIds: ['supervisor-1'],
         createdAt: createdAt,
       ),
       SiteModel(
@@ -83,6 +93,7 @@ void main() {
         location: 'Kota',
         status: 'active',
         expectedHeadcount: 35,
+        assignedSupervisorIds: ['supervisor-2'],
         createdAt: createdAt,
       ),
       SiteModel(
@@ -91,6 +102,7 @@ void main() {
         location: 'Delhi',
         status: 'active',
         expectedHeadcount: 80,
+        assignedSupervisorIds: ['supervisor-1'],
         createdAt: createdAt,
       ),
     ]);
@@ -107,6 +119,48 @@ void main() {
     );
 
     expect(sites.map((site) => site.id), isNot(contains('site-delhi-03')));
+  });
+
+  test('site repository filters to sites assigned to a supervisor', () async {
+    final SiteRepository repository = FakeSiteRepository([
+      SiteModel(
+        id: 'site-jaipur-01',
+        name: 'Jaipur Residential Project',
+        location: 'Jaipur',
+        status: 'active',
+        expectedHeadcount: 50,
+        assignedSupervisorIds: ['supervisor-1'],
+        createdAt: createdAt,
+      ),
+      SiteModel(
+        id: 'site-kota-02',
+        name: 'Kota Commercial Project',
+        location: 'Kota',
+        status: 'active',
+        expectedHeadcount: 35,
+        assignedSupervisorIds: ['supervisor-2'],
+        createdAt: createdAt,
+      ),
+      SiteModel(
+        id: 'site-delhi-03',
+        name: 'Delhi Project',
+        location: 'Delhi',
+        status: 'active',
+        expectedHeadcount: 80,
+        assignedSupervisorIds: ['supervisor-1', 'supervisor-2'],
+        createdAt: createdAt,
+      ),
+    ]);
+
+    final sites = await repository
+        .watchSitesForSupervisor('supervisor-1')
+        .first;
+
+    expect(
+      sites.map((site) => site.id),
+      containsAll(['site-jaipur-01', 'site-delhi-03']),
+    );
+    expect(sites.map((site) => site.id), isNot(contains('site-kota-02')));
   });
 
   test('repository errors are propagated to the caller', () async {

@@ -148,6 +148,17 @@ class FirestoreDatabaseService {
         );
   }
 
+  /// Stream sites assigned to a supervisor using the array field query.
+  Stream<List<SiteModel>> streamSitesForSupervisor(String supervisorId) {
+    return sitesCollection
+        .where('assignedSupervisorIds', arrayContains: supervisorId)
+        .snapshots()
+        .map(
+          (snapshot) =>
+              snapshot.docs.map((doc) => SiteModel.fromDocument(doc)).toList(),
+        );
+  }
+
   /// Real-time stream of today's attendance for a specific site (Supervisor view)
   Stream<List<AttendanceRecordModel>> streamDailyAttendance(
     String siteId,
@@ -157,6 +168,23 @@ class FirestoreDatabaseService {
         .where('siteId', isEqualTo: siteId)
         .where('date', isEqualTo: date)
         .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => AttendanceRecordModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  /// Real-time stream of workers present for a site on a specific date.
+  Stream<List<AttendanceRecordModel>> streamPresentAttendance(
+    String siteId,
+    String date,
+  ) {
+    return attendanceCollection
+        .where('siteId', isEqualTo: siteId)
+        .where('date', isEqualTo: date)
+        .where('status', isEqualTo: 'present')
         .snapshots()
         .map(
           (snapshot) => snapshot.docs

@@ -30,10 +30,12 @@ class BrixelWorkerCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final statusBgColor =
-        isPresent ? const Color(0xFFE8F5E9) : const Color(0xFFFFEBEE);
-    final statusTextColor =
-        isPresent ? const Color(0xFF2E7D32) : const Color(0xFFC62828);
+    final statusBgColor = isPresent
+        ? const Color(0xFFE8F5E9)
+        : const Color(0xFFFFEBEE);
+    final statusTextColor = isPresent
+        ? const Color(0xFF2E7D32)
+        : const Color(0xFFC62828);
 
     final cardContent = Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -54,8 +56,9 @@ class BrixelWorkerCard extends StatelessWidget {
           CircleAvatar(
             radius: 22,
             backgroundColor: BrixelColors.primarySoft,
-            backgroundImage:
-                avatarUrl != null ? NetworkImage(avatarUrl!) : null,
+            backgroundImage: avatarUrl != null
+                ? NetworkImage(avatarUrl!)
+                : null,
             child: avatarUrl == null
                 ? Text(
                     _getInitials(name),

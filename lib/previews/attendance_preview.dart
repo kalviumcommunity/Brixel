@@ -103,8 +103,10 @@ class AttendancePreviewScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 decoration: BoxDecoration(
                   color: BrixelColors.surface,
                   borderRadius: BorderRadius.circular(12),
@@ -112,8 +114,11 @@ class AttendancePreviewScreen extends StatelessWidget {
                 ),
                 child: const Row(
                   children: [
-                    Icon(Icons.search,
-                        size: 20, color: BrixelColors.secondaryText),
+                    Icon(
+                      Icons.search,
+                      size: 20,
+                      color: BrixelColors.secondaryText,
+                    ),
                     SizedBox(width: 10),
                     Text(
                       'Search worker or ID',
@@ -175,10 +180,13 @@ class AttendancePreviewScreen extends StatelessWidget {
             // Worker List Reusing BrixelWorkerCard
             Expanded(
               child: ListView.separated(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 8,
+                ),
                 itemCount: workers.length,
-                separatorBuilder: (context, index) => const SizedBox(height: 10),
+                separatorBuilder: (context, index) =>
+                    const SizedBox(height: 10),
                 itemBuilder: (context, index) {
                   final worker = workers[index];
                   return BrixelWorkerCard(

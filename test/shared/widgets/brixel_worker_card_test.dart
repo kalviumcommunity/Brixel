@@ -4,8 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('BrixelWorkerCard', () {
-    testWidgets('renders worker name, role, worker ID, and default status',
-        (tester) async {
+    testWidgets('renders worker name, role, worker ID, and default status', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
@@ -24,8 +25,7 @@ void main() {
       expect(find.text('RK'), findsOneWidget); // initials
     });
 
-    testWidgets('renders custom status and initials correctly',
-        (tester) async {
+    testWidgets('renders custom status and initials correctly', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
