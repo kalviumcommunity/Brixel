@@ -1,4 +1,5 @@
 import 'package:brixel/core/theme/brixel_theme.dart';
+import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
@@ -57,7 +58,24 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Attendance')),
+      appBar: AppBar(
+        title: const Text('Attendance'),
+        actions: [
+          IconButton(
+            key: const Key('openTrackerButton'),
+            icon: const Icon(Icons.people_alt_outlined),
+            tooltip: 'Crew Roster Tracker',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      AttendanceTrackerScreen(siteName: widget.siteName),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Form(
           key: _formKey,
