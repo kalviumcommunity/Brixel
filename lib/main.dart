@@ -1,4 +1,5 @@
 import 'package:brixel/core/theme/brixel_theme.dart';
+import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
 import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/screens/sign_up_screen.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
@@ -12,7 +13,7 @@ void main() async {
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  runApp(const MyApp(home: LoginScreen()));
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -30,6 +31,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpScreen(),
         '/sites': (context) => const SiteSelectionScreen(),
+        '/attendance-tracker': (context) => const AttendanceTrackerScreen(),
       },
     );
   }
