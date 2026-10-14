@@ -1,3 +1,4 @@
+import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:flutter/material.dart';
@@ -45,10 +46,18 @@ class SiteDashboardScreen extends StatelessWidget {
             const SizedBox(height: 24),
             Text('Reporting modules', style: textTheme.headlineSmall),
             const SizedBox(height: 12),
-            const _ReportingModuleCard(
+            _ReportingModuleCard(
               icon: Icons.groups_outlined,
               title: 'Attendance',
               description: 'Record and review aggregate workforce counts.',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        AttendanceTrackerScreen(siteName: site.name),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             const _ReportingModuleCard(
@@ -74,17 +83,19 @@ class _ReportingModuleCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.description,
+    this.onTap,
   });
 
   final IconData icon;
   final String title;
   final String description;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
 
-    return BrixelSectionCard(
+    final content = BrixelSectionCard(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -105,8 +116,20 @@ class _ReportingModuleCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onTap != null)
+            const Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
     );
+
+    if (onTap != null) {
+      return InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: content,
+      );
+    }
+
+    return content;
   }
 }
