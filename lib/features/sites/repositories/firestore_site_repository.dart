@@ -12,4 +12,9 @@ class FirestoreSiteRepository implements SiteRepository {
   Stream<List<SiteModel>> watchAssignedSites(List<String> siteIds) {
     return _databaseService.streamAssignedSites(siteIds);
   }
+
+  @override
+  Stream<List<SiteModel>> watchSitesForSupervisor(String supervisorId) {
+    return _databaseService.streamSitesForSupervisor(supervisorId);
+  }
 }
