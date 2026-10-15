@@ -35,6 +35,19 @@ class FakeSafetyIncidentWriteRepository
 
     return 'generated-incident-id';
   }
+
+  @override
+  Future<void> updateIncidentStatus({
+    required String incidentId,
+    required String status,
+    String? resolvedBy,
+  }) async {}
+
+  @override
+  Future<void> updateIncidentFields({
+    required String incidentId,
+    required Map<String, dynamic> fields,
+  }) async {}
 }
 
 void main() {

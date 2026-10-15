@@ -1,4 +1,5 @@
 import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
+import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:flutter/material.dart';
@@ -66,10 +67,17 @@ class SiteDashboardScreen extends StatelessWidget {
               description: 'Record material quantities consumed at this site.',
             ),
             const SizedBox(height: 12),
-            const _ReportingModuleCard(
+            _ReportingModuleCard(
               icon: Icons.health_and_safety_outlined,
               title: 'Safety reports',
-              description: 'Record incidents or unsafe site conditions.',
+              description: 'Track, review, and resolve safety incidents.',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => SafetyIncidentListScreen(site: site),
+                  ),
+                );
+              },
             ),
           ],
         ),

@@ -219,4 +219,16 @@ class FirestoreDatabaseService {
               .toList(),
         );
   }
+
+  /// Real-time stream of all safety incidents for a specific site
+  Stream<List<IncidentModel>> streamIncidentsForSite(String siteId) {
+    return incidentsCollection
+        .where('siteId', isEqualTo: siteId)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => IncidentModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
 }

@@ -5,4 +5,15 @@ abstract class SafetyIncidentWriteRepository {
     required String activeSiteId,
     required IncidentModel incident,
   });
+
+  Future<void> updateIncidentStatus({
+    required String incidentId,
+    required String status,
+    String? resolvedBy,
+  });
+
+  Future<void> updateIncidentFields({
+    required String incidentId,
+    required Map<String, dynamic> fields,
+  });
 }
