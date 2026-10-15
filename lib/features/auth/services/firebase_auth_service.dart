@@ -35,6 +35,7 @@ class FirebaseAuthService implements UserAuthentication {
     );
   }
 
+  @override
   Future<void> signOut() async {
     return _firebaseAuth.signOut();
   }

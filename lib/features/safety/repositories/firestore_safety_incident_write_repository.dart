@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import 'package:brixel/core/services/firestore_database_service.dart';
@@ -81,7 +82,9 @@ class FirestoreSafetyIncidentWriteRepository
           .update(updates)
           .timeout(const Duration(seconds: 2));
     } on FirebaseException catch (e) {
-      debugPrint('Firestore update FirebaseException: ${e.code} - ${e.message}');
+      debugPrint(
+        'Firestore update FirebaseException: ${e.code} - ${e.message}',
+      );
     } on TimeoutException {
       debugPrint('Firestore update timed out: proceeding with local update.');
     }
@@ -115,7 +118,9 @@ class FirestoreSafetyIncidentWriteRepository
           .update(payload)
           .timeout(const Duration(seconds: 2));
     } on FirebaseException catch (e) {
-      debugPrint('Firestore update FirebaseException: ${e.code} - ${e.message}');
+      debugPrint(
+        'Firestore update FirebaseException: ${e.code} - ${e.message}',
+      );
     } on TimeoutException {
       debugPrint('Firestore update timed out: proceeding with local update.');
     }

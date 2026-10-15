@@ -36,8 +36,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   @override
   void initState() {
     super.initState();
-    _repository =
-        widget.repository ?? FirestoreSafetyIncidentWriteRepository();
+    _repository = widget.repository ?? FirestoreSafetyIncidentWriteRepository();
 
     if (widget.initialIncidents != null) {
       _incidents = List.from(widget.initialIncidents!);
@@ -61,8 +60,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           siteId: widget.site.id,
           incidentType: 'hazard',
           severity: 'medium',
-          description:
-              'Uncovered electrical trench near worker entry gate 3.',
+          description: 'Uncovered electrical trench near worker entry gate 3.',
           status: 'reported',
           reportedBy: 'usr_sup_102',
           createdAt: now.subtract(const Duration(hours: 5)),
@@ -412,7 +410,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                     decoration: BoxDecoration(
                       color: sevColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: sevColor.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: sevColor.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Text(
                       incident.severity.toUpperCase(),

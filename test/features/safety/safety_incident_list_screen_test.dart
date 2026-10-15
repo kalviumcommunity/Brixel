@@ -100,8 +100,9 @@ void main() {
     );
   }
 
-  testWidgets('renders incident list with explicit document IDs and metrics',
-      (tester) async {
+  testWidgets('renders incident list with explicit document IDs and metrics', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -124,69 +125,81 @@ void main() {
     expect(find.text('3'), findsOneWidget); // total
   });
 
-  testWidgets('acknowledging incident targets exact document ID and updates UI',
-      (tester) async {
-    tester.view.physicalSize = const Size(800, 1600);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+  testWidgets(
+    'acknowledging incident targets exact document ID and updates UI',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    final repository = MockSafetyIncidentRepository();
-    await tester.pumpWidget(buildTestWidget(repository: repository));
-    await tester.pumpAndSettle();
+      final repository = MockSafetyIncidentRepository();
+      await tester.pumpWidget(buildTestWidget(repository: repository));
+      await tester.pumpAndSettle();
 
-    // Tap Acknowledge on inc_001 specifically
-    final ackButton = find.byKey(const Key('ack_inc_001'));
-    expect(ackButton, findsOneWidget);
-    await tester.tap(ackButton);
-    await tester.pumpAndSettle();
+      // Tap Acknowledge on inc_001 specifically
+      final ackButton = find.byKey(const Key('ack_inc_001'));
+      expect(ackButton, findsOneWidget);
+      await tester.tap(ackButton);
+      await tester.pumpAndSettle();
 
-    // Verify repository call targeted ONLY inc_001 with 'acknowledged'
-    expect(repository.updatedIncidentIds, ['inc_001']);
-    expect(repository.updatedStatuses, ['acknowledged']);
+      // Verify repository call targeted ONLY inc_001 with 'acknowledged'
+      expect(repository.updatedIncidentIds, ['inc_001']);
+      expect(repository.updatedStatuses, ['acknowledged']);
 
-    // Verify UI badge for inc_001 updated immediately
-    final statusBadge = find.byKey(const Key('statusBadge_inc_001'));
-    expect(statusBadge, findsOneWidget);
-    expect(find.descendant(of: statusBadge, matching: find.text('Acknowledged')),
-        findsOneWidget);
+      // Verify UI badge for inc_001 updated immediately
+      final statusBadge = find.byKey(const Key('statusBadge_inc_001'));
+      expect(statusBadge, findsOneWidget);
+      expect(
+        find.descendant(of: statusBadge, matching: find.text('Acknowledged')),
+        findsOneWidget,
+      );
 
-    // Verify inc_002 is still 'Reported' (untouched!)
-    final badge2 = find.byKey(const Key('statusBadge_inc_002'));
-    expect(
-        find.descendant(of: badge2, matching: find.text('Reported')), findsOneWidget);
+      // Verify inc_002 is still 'Reported' (untouched!)
+      final badge2 = find.byKey(const Key('statusBadge_inc_002'));
+      expect(
+        find.descendant(of: badge2, matching: find.text('Reported')),
+        findsOneWidget,
+      );
 
-    // Verify SnackBar confirmation
-    expect(find.textContaining('Updated incident inc_001 status to Acknowledged'),
-        findsOneWidget);
-  });
+      // Verify SnackBar confirmation
+      expect(
+        find.textContaining('Updated incident inc_001 status to Acknowledged'),
+        findsOneWidget,
+      );
+    },
+  );
 
-  testWidgets('resolving incident updates status to resolved and updates summary metrics',
-      (tester) async {
-    tester.view.physicalSize = const Size(800, 1600);
-    tester.view.devicePixelRatio = 1.0;
-    addTearDown(() => tester.view.resetPhysicalSize());
+  testWidgets(
+    'resolving incident updates status to resolved and updates summary metrics',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
 
-    final repository = MockSafetyIncidentRepository();
-    await tester.pumpWidget(buildTestWidget(repository: repository));
-    await tester.pumpAndSettle();
+      final repository = MockSafetyIncidentRepository();
+      await tester.pumpWidget(buildTestWidget(repository: repository));
+      await tester.pumpAndSettle();
 
-    // Resolve inc_002
-    final resolveButton = find.byKey(const Key('resolve_inc_002'));
-    expect(resolveButton, findsOneWidget);
-    await tester.tap(resolveButton);
-    await tester.pumpAndSettle();
+      // Resolve inc_002
+      final resolveButton = find.byKey(const Key('resolve_inc_002'));
+      expect(resolveButton, findsOneWidget);
+      await tester.tap(resolveButton);
+      await tester.pumpAndSettle();
 
-    expect(repository.updatedIncidentIds, ['inc_002']);
-    expect(repository.updatedStatuses, ['resolved']);
+      expect(repository.updatedIncidentIds, ['inc_002']);
+      expect(repository.updatedStatuses, ['resolved']);
 
-    // Badge updated
-    final badge2 = find.byKey(const Key('statusBadge_inc_002'));
-    expect(
-        find.descendant(of: badge2, matching: find.text('Resolved')), findsOneWidget);
+      // Badge updated
+      final badge2 = find.byKey(const Key('statusBadge_inc_002'));
+      expect(
+        find.descendant(of: badge2, matching: find.text('Resolved')),
+        findsOneWidget,
+      );
 
-    // Resolved count should have incremented to 2
-    expect(find.text('Resolved & Closed'), findsNWidgets(2));
-  });
+      // Resolved count should have incremented to 2
+      expect(find.text('Resolved & Closed'), findsNWidgets(2));
+    },
+  );
 
   testWidgets('filters incidents by status', (tester) async {
     tester.view.physicalSize = const Size(800, 1600);
@@ -206,8 +219,9 @@ void main() {
     expect(find.byKey(const Key('docId_inc_002')), findsNothing);
   });
 
-  testWidgets('displays error feedback when Firestore update fails',
-      (tester) async {
+  testWidgets('displays error feedback when Firestore update fails', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(() => tester.view.resetPhysicalSize());
@@ -221,8 +235,10 @@ void main() {
 
     // Status remains reported
     final statusBadge = find.byKey(const Key('statusBadge_inc_001'));
-    expect(find.descendant(of: statusBadge, matching: find.text('Reported')),
-        findsOneWidget);
+    expect(
+      find.descendant(of: statusBadge, matching: find.text('Reported')),
+      findsOneWidget,
+    );
 
     // Error SnackBar shown
     expect(find.textContaining('Failed to update incident:'), findsOneWidget);
