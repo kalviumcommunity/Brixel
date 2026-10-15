@@ -15,6 +15,9 @@ class FakeUserAuthentication implements UserAuthentication {
   Object? errorToThrow;
 
   @override
+  Future<void> signOut() async {}
+
+  @override
   Future<void> signIn({required String email, required String password}) async {
     callCount++;
     submittedEmail = email;

@@ -64,5 +64,15 @@ void main() {
       find.textContaining('Safety reporting for Ajmer Commercial Project'),
       findsOneWidget,
     );
+
+    final moreTab = find.descendant(
+      of: find.byType(NavigationBar),
+      matching: find.text('More'),
+    );
+    await tester.tap(moreTab);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Log out'), findsOneWidget);
+    expect(find.textContaining('will appear here later'), findsNothing);
   });
 }

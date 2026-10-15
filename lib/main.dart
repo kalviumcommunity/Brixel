@@ -35,12 +35,12 @@ class MyApp extends StatelessWidget {
         '/sites': (context) => const SiteSelectionScreen(),
         '/attendance-tracker': (context) => const AttendanceTrackerScreen(),
         '/safety-incidents': (context) => const SafetyIncidentListScreen(
-              site: Site(
-                id: 'site_metro_line1',
-                name: 'Metro Line 1 - Station Pier 4',
-                location: 'Madhapur, Hyderabad',
-              ),
-            ),
+          site: Site(
+            id: 'site_metro_line1',
+            name: 'Metro Line 1 - Station Pier 4',
+            location: 'Madhapur, Hyderabad',
+          ),
+        ),
       },
     );
   }

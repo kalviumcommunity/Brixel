@@ -1,4 +1,5 @@
 import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
+import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
 import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
@@ -31,8 +32,7 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
       SafetyIncidentFormScreen(siteName: widget.site.name),
       _ModulePlaceholderScreen(
         title: 'More',
-        description:
-            'Additional approved options for ${widget.site.name} will appear here later.',
+        description: 'Manage your Brixel session for ${widget.site.name}.',
         icon: Icons.menu,
         site: widget.site,
       ),
@@ -129,6 +129,8 @@ class _ModulePlaceholderScreen extends StatelessWidget {
                   Text(site.location, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
                   Text(description, textAlign: TextAlign.center),
+                  const SizedBox(height: 16),
+                  const LogoutButton(),
                 ],
               ),
             ),
