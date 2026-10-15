@@ -2,6 +2,8 @@ import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
 import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/screens/sign_up_screen.dart';
+import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
+import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -32,6 +34,13 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignUpScreen(),
         '/sites': (context) => const SiteSelectionScreen(),
         '/attendance-tracker': (context) => const AttendanceTrackerScreen(),
+        '/safety-incidents': (context) => const SafetyIncidentListScreen(
+              site: Site(
+                id: 'site_metro_line1',
+                name: 'Metro Line 1 - Station Pier 4',
+                location: 'Madhapur, Hyderabad',
+              ),
+            ),
       },
     );
   }
