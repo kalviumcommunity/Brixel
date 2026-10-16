@@ -1,3 +1,4 @@
+import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:brixel/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -6,7 +7,7 @@ void main() {
   testWidgets('selected site is preserved across bottom navigation', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(const MyApp(home: SiteSelectionScreen()));
     await tester.pumpAndSettle();
 
     expect(find.text('Select a site'), findsOneWidget);

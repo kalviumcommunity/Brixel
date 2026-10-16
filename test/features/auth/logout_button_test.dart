@@ -20,7 +20,11 @@ class FakeUserAuthentication implements UserAuthentication {
   @override
   Future<void> signOut() async {
     signOutCallCount++;
-    if (signOutError != null) throw signOutError!;
+
+    if (signOutError != null) {
+      throw signOutError!;
+    }
+
     await signOutCompleter?.future;
   }
 }
@@ -29,6 +33,7 @@ void main() {
   Widget buildTestApp(
     UserAuthentication authService, {
     WidgetBuilder? destinationBuilder,
+    bool navigateAfterSignOut = true,
   }) {
     return MaterialApp(
       theme: buildBrixelTheme(),
@@ -39,6 +44,7 @@ void main() {
             LogoutButton(
               authService: authService,
               destinationBuilder: destinationBuilder,
+              navigateAfterSignOut: navigateAfterSignOut,
             ),
           ],
         ),
@@ -60,16 +66,20 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('logoutButton')));
+
     await tester.pumpAndSettle();
 
     expect(auth.signOutCallCount, 1);
+
     expect(find.text('Login destination'), findsOneWidget);
+
     expect(find.text('Authenticated content'), findsNothing);
 
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(find.text('Login destination'), findsOneWidget);
+
     expect(find.text('Authenticated content'), findsNothing);
   });
 
@@ -88,12 +98,17 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('logoutButton')));
+
     await tester.pump();
 
     expect(auth.signOutCallCount, 1);
+
     expect(find.text('Could not log out. Please try again.'), findsOneWidget);
+
     expect(find.text('private Firebase error details'), findsNothing);
+
     expect(find.text('Authenticated content'), findsOneWidget);
+
     expect(find.text('Login destination'), findsNothing);
   });
 
@@ -111,15 +126,48 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('logoutButton')));
+
     await tester.pump();
+
     expect(find.text('Logging out...'), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('logoutButton')));
+
     await tester.pump();
+
     expect(auth.signOutCallCount, 1);
 
     auth.signOutCompleter!.complete();
+
     await tester.pumpAndSettle();
+
     expect(find.text('Login destination'), findsOneWidget);
+  });
+
+  testWidgets('can defer logout routing to auth state gate', (
+    WidgetTester tester,
+  ) async {
+    final auth = FakeUserAuthentication();
+
+    await tester.pumpWidget(
+      buildTestApp(
+        auth,
+        navigateAfterSignOut: false,
+        destinationBuilder: (_) =>
+            const Scaffold(body: Text('Login destination')),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key('logoutButton')));
+
+    await tester.pumpAndSettle();
+
+    expect(auth.signOutCallCount, 1);
+
+    // Sign-out happened, but LogoutButton itself
+    // did not choose the next authentication screen.
+    expect(find.text('Authenticated content'), findsOneWidget);
+
+    expect(find.text('Login destination'), findsNothing);
   });
 }

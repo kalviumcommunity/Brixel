@@ -5,10 +5,16 @@ import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:flutter/material.dart';
 
 class LogoutButton extends StatefulWidget {
-  const LogoutButton({super.key, this.authService, this.destinationBuilder});
+  const LogoutButton({
+    super.key,
+    this.authService,
+    this.destinationBuilder,
+    this.navigateAfterSignOut = false,
+  });
 
   final UserAuthentication? authService;
   final WidgetBuilder? destinationBuilder;
+  final bool navigateAfterSignOut;
 
   @override
   State<LogoutButton> createState() => _LogoutButtonState();
@@ -30,8 +36,14 @@ class _LogoutButtonState extends State<LogoutButton> {
 
       if (!mounted) return;
 
+      if (!widget.navigateAfterSignOut) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        return;
+      }
+
       final destination =
           widget.destinationBuilder?.call(context) ?? const LoginScreen();
+
       Navigator.of(context).pushAndRemoveUntil<void>(
         MaterialPageRoute<void>(builder: (_) => destination),
         (route) => false,
