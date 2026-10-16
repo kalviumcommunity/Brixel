@@ -42,6 +42,16 @@ class MockSafetyIncidentRepository implements SafetyIncidentWriteRepository {
     }
     updatedIncidentIds.add(incidentId);
   }
+
+  final List<String> deletedIncidentIds = [];
+
+  @override
+  Future<void> deleteIncident({required String incidentId}) async {
+    if (shouldThrowError) {
+      throw StateError('Network timeout during Firestore delete');
+    }
+    deletedIncidentIds.add(incidentId);
+  }
 }
 
 void main() {

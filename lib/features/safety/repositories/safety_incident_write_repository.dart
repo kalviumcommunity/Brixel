@@ -16,4 +16,6 @@ abstract class SafetyIncidentWriteRepository {
     required String incidentId,
     required Map<String, dynamic> fields,
   });
+
+  Future<void> deleteIncident({required String incidentId});
 }

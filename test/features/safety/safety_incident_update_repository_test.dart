@@ -100,6 +100,14 @@ class CapturingSafetyIncidentRepository
       status: fields['status'] as String? ?? existing.status,
     );
   }
+
+  @override
+  Future<void> deleteIncident({required String incidentId}) async {
+    if (incidentId.trim().isEmpty) {
+      throw ArgumentError('Incident document ID cannot be empty.');
+    }
+    storage.remove(incidentId);
+  }
 }
 
 void main() {

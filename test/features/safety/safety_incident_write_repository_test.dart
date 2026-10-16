@@ -48,6 +48,9 @@ class FakeSafetyIncidentWriteRepository
     required String incidentId,
     required Map<String, dynamic> fields,
   }) async {}
+
+  @override
+  Future<void> deleteIncident({required String incidentId}) async {}
 }
 
 void main() {
