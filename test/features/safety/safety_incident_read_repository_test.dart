@@ -22,6 +22,23 @@ class FakeSafetyIncidentReadRepository implements SafetyIncidentReadRepository {
 
     return incidents.where((incident) => incident.siteId == siteId).toList();
   }
+
+  @override
+  Stream<List<IncidentModel>> watchIncidentsForSite(String siteId) {
+    if (siteId.trim().isEmpty) {
+      throw ArgumentError(
+        'Site ID cannot be empty when watching safety incidents.',
+      );
+    }
+
+    if (error != null) {
+      return Stream.error(error!);
+    }
+
+    return Stream.value(
+      incidents.where((incident) => incident.siteId == siteId).toList(),
+    );
+  }
 }
 
 void main() {
@@ -80,6 +97,30 @@ void main() {
 
     await expectLater(
       repository.fetchIncidentsForSite(''),
+      throwsA(isA<ArgumentError>()),
+    );
+  });
+
+  test('watchIncidentsForSite streams real-time updates for site', () async {
+    final repository = FakeSafetyIncidentReadRepository(
+      incidents: [
+        buildIncident(id: 'incident-1', siteId: 'site-jaipur-01'),
+        buildIncident(id: 'incident-2', siteId: 'site-kota-02'),
+      ],
+    );
+
+    final stream = repository.watchIncidentsForSite('site-jaipur-01');
+    final firstEmission = await stream.first;
+
+    expect(firstEmission.length, 1);
+    expect(firstEmission.first.id, 'incident-1');
+  });
+
+  test('watchIncidentsForSite rejects empty site id', () async {
+    final repository = FakeSafetyIncidentReadRepository(incidents: const []);
+
+    expect(
+      () => repository.watchIncidentsForSite(''),
       throwsA(isA<ArgumentError>()),
     );
   });

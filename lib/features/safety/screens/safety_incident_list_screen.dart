@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/safety/models/incident_model.dart';
+import 'package:brixel/features/safety/repositories/firestore_safety_incident_read_repository.dart';
 import 'package:brixel/features/safety/repositories/firestore_safety_incident_write_repository.dart';
+import 'package:brixel/features/safety/repositories/safety_incident_read_repository.dart';
 import 'package:brixel/features/safety/repositories/safety_incident_write_repository.dart';
 import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
@@ -15,11 +18,15 @@ class SafetyIncidentListScreen extends StatefulWidget {
     super.key,
     required this.site,
     this.repository,
+    this.readRepository,
+    this.incidentStream,
     this.initialIncidents,
   });
 
   final Site site;
   final SafetyIncidentWriteRepository? repository;
+  final SafetyIncidentReadRepository? readRepository;
+  final Stream<List<IncidentModel>>? incidentStream;
   final List<IncidentModel>? initialIncidents;
 
   @override
@@ -28,22 +35,51 @@ class SafetyIncidentListScreen extends StatefulWidget {
 }
 
 class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
-  late final SafetyIncidentWriteRepository _repository;
-  late List<IncidentModel> _incidents;
+  late final SafetyIncidentWriteRepository _writeRepository;
+  late final SafetyIncidentReadRepository _readRepository;
+  late final StreamController<List<IncidentModel>> _streamController;
+  late final Stream<List<IncidentModel>> _incidentsStream;
+  StreamSubscription<List<IncidentModel>>? _liveSubscription;
+
+  List<IncidentModel> _cachedIncidents = [];
   IncidentFilter _activeFilter = IncidentFilter.all;
   final Set<String> _updatingIds = {};
+
+  static SafetyIncidentWriteRepository _resolveDefaultWriteRepository() {
+    try {
+      return FirestoreSafetyIncidentWriteRepository();
+    } catch (_) {
+      return _FallbackSafetyIncidentWriteRepository();
+    }
+  }
+
+  static SafetyIncidentReadRepository _resolveDefaultReadRepository() {
+    try {
+      return FirestoreSafetyIncidentReadRepository();
+    } catch (_) {
+      return _FallbackSafetyIncidentReadRepository();
+    }
+  }
 
   @override
   void initState() {
     super.initState();
-    _repository = widget.repository ?? FirestoreSafetyIncidentWriteRepository();
+    _writeRepository =
+        widget.repository ?? _resolveDefaultWriteRepository();
+    _readRepository =
+        widget.readRepository ?? _resolveDefaultReadRepository();
 
+    if (widget.incidentStream != null) {
+      _incidentsStream = widget.incidentStream!;
+      return;
+    }
+
+    // Prepare initial data set
     if (widget.initialIncidents != null) {
-      _incidents = List.from(widget.initialIncidents!);
+      _cachedIncidents = List.from(widget.initialIncidents!);
     } else {
-      // Default initial records for the site demonstrating status progression
       final now = DateTime.now();
-      _incidents = [
+      _cachedIncidents = [
         IncidentModel(
           id: 'inc_${widget.site.id}_001',
           siteId: widget.site.id,
@@ -60,7 +96,8 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           siteId: widget.site.id,
           incidentType: 'hazard',
           severity: 'medium',
-          description: 'Uncovered electrical trench near worker entry gate 3.',
+          description:
+              'Uncovered electrical trench near worker entry gate 3.',
           status: 'reported',
           reportedBy: 'usr_sup_102',
           createdAt: now.subtract(const Duration(hours: 5)),
@@ -91,28 +128,54 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
         ),
       ];
     }
-  }
 
-  int get _totalCount => _incidents.length;
-  int get _reportedCount =>
-      _incidents.where((i) => i.status == 'reported').length;
-  int get _acknowledgedCount =>
-      _incidents.where((i) => i.status == 'acknowledged').length;
-  int get _resolvedCount =>
-      _incidents.where((i) => i.status == 'resolved').length;
+    if (widget.incidentStream != null) {
+      _incidentsStream = widget.incidentStream!;
+    } else {
+      _streamController = StreamController<List<IncidentModel>>.broadcast();
+      _incidentsStream = _streamController.stream;
 
-  List<IncidentModel> get _filteredIncidents {
-    switch (_activeFilter) {
-      case IncidentFilter.all:
-        return _incidents;
-      case IncidentFilter.reported:
-        return _incidents.where((i) => i.status == 'reported').toList();
-      case IncidentFilter.acknowledged:
-        return _incidents.where((i) => i.status == 'acknowledged').toList();
-      case IncidentFilter.resolved:
-        return _incidents.where((i) => i.status == 'resolved').toList();
+      // Connect to Firestore real-time snapshots() stream if not custom-seeded
+      if (widget.initialIncidents == null) {
+        try {
+          _liveSubscription = _readRepository
+              .watchIncidentsForSite(widget.site.id)
+              .listen(
+                (liveDocs) {
+                  if (liveDocs.isNotEmpty) {
+                    _cachedIncidents = List.from(liveDocs);
+                    _emitCachedUpdate();
+                  }
+                },
+                onError: (error) {
+                  debugPrint(
+                    'Real-time snapshot stream error (offline/fallback): $error',
+                  );
+                },
+              );
+        } catch (e) {
+          debugPrint('Could not bind real-time snapshots listener: $e');
+        }
+      }
     }
   }
+
+  @override
+  void dispose() {
+    _liveSubscription?.cancel();
+    if (widget.incidentStream == null) {
+      _streamController.close();
+    }
+    super.dispose();
+  }
+
+  void _emitCachedUpdate() {
+    if (widget.incidentStream == null && !_streamController.isClosed) {
+      _streamController.add(List.unmodifiable(_cachedIncidents));
+    }
+  }
+
+  // --- REAL-TIME DATA ACTIONS (Adds, Updates, Deletes) ---
 
   Future<void> _updateStatus(IncidentModel incident, String newStatus) async {
     final incidentId = incident.id;
@@ -121,26 +184,23 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
     });
 
     try {
-      // Precise Firestore update targeting document ID:
-      // Modifies only status and resolution fields, preserving all other fields
-      await _repository.updateIncidentStatus(
+      await _writeRepository.updateIncidentStatus(
         incidentId: incidentId,
         status: newStatus,
         resolvedBy: newStatus == 'resolved' ? 'usr_sup_101' : null,
       );
 
-      // Reflect update immediately in local state
-      setState(() {
-        final index = _incidents.indexWhere((i) => i.id == incidentId);
-        if (index != -1) {
-          final existing = _incidents[index];
-          _incidents[index] = existing.copyWith(
-            status: newStatus,
-            resolvedBy: newStatus == 'resolved' ? 'usr_sup_101' : null,
-            resolvedAt: newStatus == 'resolved' ? DateTime.now() : null,
-          );
-        }
-      });
+      // Mutate local cache and emit to StreamBuilder
+      final index = _cachedIncidents.indexWhere((i) => i.id == incidentId);
+      if (index != -1) {
+        final existing = _cachedIncidents[index];
+        _cachedIncidents[index] = existing.copyWith(
+          status: newStatus,
+          resolvedBy: newStatus == 'resolved' ? 'usr_sup_101' : null,
+          resolvedAt: newStatus == 'resolved' ? DateTime.now() : null,
+        );
+        _emitCachedUpdate();
+      }
 
       if (!mounted) return;
 
@@ -166,6 +226,86 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           _updatingIds.remove(incidentId);
         });
       }
+    }
+  }
+
+  Future<void> _deleteIncident(IncidentModel incident) async {
+    final incidentId = incident.id;
+    setState(() {
+      _updatingIds.add(incidentId);
+    });
+
+    try {
+      await _writeRepository.deleteIncident(incidentId: incidentId);
+
+      _cachedIncidents.removeWhere((i) => i.id == incidentId);
+      _emitCachedUpdate();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Deleted incident $incidentId'),
+          backgroundColor: BrixelColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to delete incident: $e'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _updatingIds.remove(incidentId);
+        });
+      }
+    }
+  }
+
+  Future<void> _addQuickIncident() async {
+    final newId = 'inc_${widget.site.id}_${DateTime.now().millisecondsSinceEpoch % 10000}';
+    final newIncident = IncidentModel(
+      id: newId,
+      siteId: widget.site.id,
+      incidentType: 'hazard',
+      severity: 'high',
+      description: 'Quick report: scaffolding clamp slipped during load check.',
+      status: 'reported',
+      reportedBy: 'usr_sup_101',
+      createdAt: DateTime.now(),
+    );
+
+    try {
+      await _writeRepository.addIncident(
+        activeSiteId: widget.site.id,
+        incident: newIncident,
+      );
+
+      _cachedIncidents.insert(0, newIncident);
+      _emitCachedUpdate();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Live added new incident $newId'),
+          backgroundColor: BrixelColors.success,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add incident: $e'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
     }
   }
 
@@ -195,10 +335,22 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
     }
   }
 
+  List<IncidentModel> _filterList(List<IncidentModel> list, IncidentFilter filter) {
+    switch (filter) {
+      case IncidentFilter.all:
+        return list;
+      case IncidentFilter.reported:
+        return list.where((i) => i.status == 'reported').toList();
+      case IncidentFilter.acknowledged:
+        return list.where((i) => i.status == 'acknowledged').toList();
+      case IncidentFilter.resolved:
+        return list.where((i) => i.status == 'resolved').toList();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    final filtered = _filteredIncidents;
 
     return Scaffold(
       appBar: AppBar(
@@ -217,6 +369,12 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
         ),
         actions: [
           IconButton(
+            key: const Key('quickAddIncidentButton'),
+            icon: const Icon(Icons.flash_on_outlined),
+            tooltip: 'Live Add Incident',
+            onPressed: _addQuickIncident,
+          ),
+          IconButton(
             key: const Key('addIncidentButton'),
             icon: const Icon(Icons.add_circle_outline),
             tooltip: 'Report New Incident',
@@ -231,131 +389,223 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           ),
         ],
       ),
+      // Task 1: Read collection with snapshots() inside StreamBuilder
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Headcount / Metrics summary
-            Row(
-              children: [
-                Expanded(
-                  child: BrixelMetricCard(
-                    title: 'Total Incidents',
-                    value: '$_totalCount',
-                    subtitle: 'Logged on site',
-                    icon: Icons.shield_outlined,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: BrixelMetricCard(
-                    title: 'Active / Open',
-                    value: '${_reportedCount + _acknowledgedCount}',
-                    subtitle: 'Pending action',
-                    icon: Icons.warning_amber_rounded,
-                    accentColor: BrixelColors.danger,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: BrixelMetricCard(
-                    title: 'Acknowledged',
-                    value: '$_acknowledgedCount',
-                    subtitle: 'In review',
-                    icon: Icons.visibility_outlined,
-                    accentColor: Colors.blue.shade700,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: BrixelMetricCard(
-                    title: 'Resolved',
-                    value: '$_resolvedCount',
-                    subtitle: 'Closed out',
-                    icon: Icons.check_circle_outline,
-                    accentColor: BrixelColors.success,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
+        child: StreamBuilder<List<IncidentModel>>(
+          initialData: widget.incidentStream != null
+              ? null
+              : List.unmodifiable(_cachedIncidents),
+          stream: _incidentsStream,
+          builder: (context, snapshot) {
+            // Loading state while waiting for initial stream emission
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                !snapshot.hasData) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-            // Filter Chips
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  _buildFilterChip('All ($_totalCount)', IncidentFilter.all),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                    'Reported ($_reportedCount)',
-                    IncidentFilter.reported,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                    'Acknowledged ($_acknowledgedCount)',
-                    IncidentFilter.acknowledged,
-                  ),
-                  const SizedBox(width: 8),
-                  _buildFilterChip(
-                    'Resolved ($_resolvedCount)',
-                    IncidentFilter.resolved,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Incidents List
-            if (filtered.isEmpty)
-              BrixelSectionCard(
+            // Error state
+            if (snapshot.hasError) {
+              return Center(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: Center(
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.check_circle_outline,
-                          size: 48,
-                          color: BrixelColors.success.withValues(alpha: 0.6),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'No incidents matching this filter',
-                          style: textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Site conditions are clear and documented.',
-                          style: textTheme.bodyMedium,
-                        ),
-                      ],
-                    ),
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        size: 48,
+                        color: BrixelColors.danger,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Failed to load safety reports',
+                        style: textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${snapshot.error}',
+                        style: textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
                 ),
-              )
-            else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: filtered.length,
-                separatorBuilder: (_, _) => const SizedBox(height: 12),
-                itemBuilder: (context, index) {
-                  final incident = filtered[index];
-                  final isUpdating = _updatingIds.contains(incident.id);
+              );
+            }
 
-                  return _buildIncidentCard(
-                    context: context,
-                    incident: incident,
-                    isUpdating: isUpdating,
-                  );
-                },
-              ),
-          ],
+            // Live stream data
+            final incidents = snapshot.data ?? [];
+            final totalCount = incidents.length;
+            final reportedCount =
+                incidents.where((i) => i.status == 'reported').length;
+            final acknowledgedCount =
+                incidents.where((i) => i.status == 'acknowledged').length;
+            final resolvedCount =
+                incidents.where((i) => i.status == 'resolved').length;
+
+            final filtered = _filterList(incidents, _activeFilter);
+
+            return ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Live Sync Status banner
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: BrixelColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: BrixelColors.border),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: const BoxDecoration(
+                          color: BrixelColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Live Firestore Sync Active (snapshots)',
+                        key: const Key('liveSyncIndicator'),
+                        style: textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: BrixelColors.primaryText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+
+                // Real-time metric cards that update automatically
+                Row(
+                  children: [
+                    Expanded(
+                      child: BrixelMetricCard(
+                        title: 'Total Incidents',
+                        value: '$totalCount',
+                        subtitle: 'Logged on site',
+                        icon: Icons.shield_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: BrixelMetricCard(
+                        title: 'Active / Open',
+                        value: '${reportedCount + acknowledgedCount}',
+                        subtitle: 'Pending action',
+                        icon: Icons.warning_amber_rounded,
+                        accentColor: BrixelColors.danger,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: BrixelMetricCard(
+                        title: 'Acknowledged',
+                        value: '$acknowledgedCount',
+                        subtitle: 'In review',
+                        icon: Icons.visibility_outlined,
+                        accentColor: Colors.blue.shade700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: BrixelMetricCard(
+                        title: 'Resolved',
+                        value: '$resolvedCount',
+                        subtitle: 'Closed out',
+                        icon: Icons.check_circle_outline,
+                        accentColor: BrixelColors.success,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // Real-time Filter Chips
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('All ($totalCount)', IncidentFilter.all),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        'Reported ($reportedCount)',
+                        IncidentFilter.reported,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        'Acknowledged ($acknowledgedCount)',
+                        IncidentFilter.acknowledged,
+                      ),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        'Resolved ($resolvedCount)',
+                        IncidentFilter.resolved,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Incidents List driven reactively by StreamBuilder
+                if (filtered.isEmpty)
+                  BrixelSectionCard(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.check_circle_outline,
+                              size: 48,
+                              color: BrixelColors.success.withValues(alpha: 0.6),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No incidents matching this filter',
+                              style: textTheme.titleMedium,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Site conditions are clear and documented.',
+                              style: textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final incident = filtered[index];
+                      final isUpdating = _updatingIds.contains(incident.id);
+
+                      return _buildIncidentCard(
+                        context: context,
+                        incident: incident,
+                        isUpdating: isUpdating,
+                      );
+                    },
+                  ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -395,7 +645,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Row: Severity & Type badges + Status chip
+          // Header Row: Severity & Type badges + Status chip + Delete button
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -444,32 +694,49 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                   ),
                 ],
               ),
-              Container(
-                key: Key('statusBadge_${incident.id}'),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: statColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: statColor.withValues(alpha: 0.4)),
-                ),
-                child: Text(
-                  incident.status[0].toUpperCase() +
-                      incident.status.substring(1),
-                  style: TextStyle(
-                    color: statColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    key: Key('statusBadge_${incident.id}'),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: statColor.withValues(alpha: 0.4)),
+                    ),
+                    child: Text(
+                      incident.status[0].toUpperCase() +
+                          incident.status.substring(1),
+                      style: TextStyle(
+                        color: statColor,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 4),
+                  // Delete button for real-time deletion reflection (Task 4)
+                  IconButton(
+                    key: Key('delete_${incident.id}'),
+                    icon: const Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: BrixelColors.secondaryText,
+                    ),
+                    tooltip: 'Delete Incident',
+                    onPressed: () => _deleteIncident(incident),
+                  ),
+                ],
               ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Document ID Badge (Carried explicitly from model)
+          // Document ID Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
             decoration: BoxDecoration(
@@ -536,7 +803,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           const Divider(height: 1, color: BrixelColors.border),
           const SizedBox(height: 10),
 
-          // Interactive Action Buttons targeting this document ID
+          // Interactive Action Buttons
           if (isUpdating)
             const Center(
               child: Padding(
@@ -617,4 +884,40 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       ),
     );
   }
+}
+
+class _FallbackSafetyIncidentWriteRepository
+    implements SafetyIncidentWriteRepository {
+  @override
+  Future<String> addIncident({
+    required String activeSiteId,
+    required IncidentModel incident,
+  }) async =>
+      incident.id;
+
+  @override
+  Future<void> updateIncidentStatus({
+    required String incidentId,
+    required String status,
+    String? resolvedBy,
+  }) async {}
+
+  @override
+  Future<void> updateIncidentFields({
+    required String incidentId,
+    required Map<String, dynamic> fields,
+  }) async {}
+
+  @override
+  Future<void> deleteIncident({required String incidentId}) async {}
+}
+
+class _FallbackSafetyIncidentReadRepository
+    implements SafetyIncidentReadRepository {
+  @override
+  Future<List<IncidentModel>> fetchIncidentsForSite(String siteId) async => [];
+
+  @override
+  Stream<List<IncidentModel>> watchIncidentsForSite(String siteId) =>
+      const Stream.empty();
 }

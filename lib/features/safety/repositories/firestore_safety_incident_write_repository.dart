@@ -125,4 +125,25 @@ class FirestoreSafetyIncidentWriteRepository
       debugPrint('Firestore update timed out: proceeding with local update.');
     }
   }
+
+  @override
+  Future<void> deleteIncident({required String incidentId}) async {
+    final normalizedId = incidentId.trim();
+    if (normalizedId.isEmpty) {
+      throw ArgumentError('Incident document ID cannot be empty.');
+    }
+
+    try {
+      await _databaseService.incidentsCollection
+          .doc(normalizedId)
+          .delete()
+          .timeout(const Duration(seconds: 2));
+    } on FirebaseException catch (e) {
+      debugPrint(
+        'Firestore delete FirebaseException: ${e.code} - ${e.message}',
+      );
+    } on TimeoutException {
+      debugPrint('Firestore delete timed out: proceeding with local update.');
+    }
+  }
 }

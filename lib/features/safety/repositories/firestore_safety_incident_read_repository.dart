@@ -28,4 +28,24 @@ class FirestoreSafetyIncidentReadRepository
         .map((document) => IncidentModel.fromMap(document.data(), document.id))
         .toList();
   }
+
+  @override
+  Stream<List<IncidentModel>> watchIncidentsForSite(String siteId) {
+    final normalizedSiteId = siteId.trim();
+
+    if (normalizedSiteId.isEmpty) {
+      throw ArgumentError(
+        'Site ID cannot be empty when watching safety incidents.',
+      );
+    }
+
+    return _databaseService.incidentsCollection
+        .where('siteId', isEqualTo: normalizedSiteId)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => IncidentModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
 }
