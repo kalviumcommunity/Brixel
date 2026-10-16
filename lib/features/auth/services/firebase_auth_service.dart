@@ -1,8 +1,9 @@
 import 'package:firebase_auth/firebase_auth.dart';
 
+import 'authentication_state.dart';
 import 'user_authentication.dart';
 
-class FirebaseAuthService implements UserAuthentication {
+class FirebaseAuthService implements UserAuthentication, AuthenticationState {
   FirebaseAuthService({FirebaseAuth? firebaseAuth})
     : _firebaseAuth = firebaseAuth ?? FirebaseAuth.instance;
 
@@ -12,6 +13,11 @@ class FirebaseAuthService implements UserAuthentication {
 
   Stream<User?> authStateChanges() {
     return _firebaseAuth.authStateChanges();
+  }
+
+  @override
+  Stream<String?> watchUserId() {
+    return _firebaseAuth.authStateChanges().map((user) => user?.uid);
   }
 
   Future<UserCredential> signUp({

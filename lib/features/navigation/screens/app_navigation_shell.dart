@@ -130,7 +130,7 @@ class _ModulePlaceholderScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(description, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
-                  const LogoutButton(),
+                  const LogoutButton(navigateAfterSignOut: false),
                 ],
               ),
             ),

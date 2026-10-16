@@ -42,13 +42,17 @@ void main() {
       'shows validation errors for empty fields and does not sign in',
       (WidgetTester tester) async {
         final auth = FakeUserAuthentication();
+
         await tester.pumpWidget(buildTestApp(auth));
 
         await tester.tap(find.byKey(const Key('loginButton')));
+
         await tester.pump();
 
         expect(find.text('Enter your email'), findsOneWidget);
+
         expect(find.text('Enter your password'), findsOneWidget);
+
         expect(auth.callCount, 0);
       },
     );
@@ -57,23 +61,30 @@ void main() {
       WidgetTester tester,
     ) async {
       final auth = FakeUserAuthentication();
+
       await tester.pumpWidget(buildTestApp(auth));
 
       final emailField = find.widgetWithText(TextFormField, 'Email');
+
       final passwordField = find.widgetWithText(TextFormField, 'Password');
 
       await tester.enterText(emailField, 'notanemail');
+
       await tester.enterText(passwordField, '123');
+
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('loginButton')));
+
       await tester.pump();
 
       expect(find.text('Enter a valid email address'), findsOneWidget);
+
       expect(
         find.text('Password must contain at least 6 characters'),
         findsOneWidget,
       );
+
       expect(auth.callCount, 0);
     });
   });
@@ -88,18 +99,25 @@ void main() {
         await tester.pumpWidget(buildTestApp(auth));
 
         final emailField = find.widgetWithText(TextFormField, 'Email');
+
         final passwordField = find.widgetWithText(TextFormField, 'Password');
 
         await tester.enterText(emailField, 'arjun@brixel.app');
+
         await tester.enterText(passwordField, 'wrongPass123');
+
         await tester.pump();
 
         await tester.tap(find.byKey(const Key('loginButton')));
+
         await tester.pump();
 
         expect(find.text('Incorrect email or password.'), findsOneWidget);
+
         final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+
         expect(snackBar.backgroundColor, BrixelColors.danger);
+
         expect(auth.callCount, 1);
       },
     );
@@ -113,17 +131,23 @@ void main() {
       await tester.pumpWidget(buildTestApp(auth));
 
       final emailField = find.widgetWithText(TextFormField, 'Email');
+
       final passwordField = find.widgetWithText(TextFormField, 'Password');
 
       await tester.enterText(emailField, 'unknown@brixel.app');
+
       await tester.enterText(passwordField, 'secretPass123');
+
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('loginButton')));
+
       await tester.pump();
 
       expect(find.text('Incorrect email or password.'), findsOneWidget);
+
       final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+
       expect(snackBar.backgroundColor, BrixelColors.danger);
     });
 
@@ -136,17 +160,23 @@ void main() {
       await tester.pumpWidget(buildTestApp(auth));
 
       final emailField = find.widgetWithText(TextFormField, 'Email');
+
       final passwordField = find.widgetWithText(TextFormField, 'Password');
 
       await tester.enterText(emailField, 'arjun@brixel.app');
+
       await tester.enterText(passwordField, 'secretPass123');
+
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('loginButton')));
+
       await tester.pump();
 
       expect(find.text('Too many attempts. Try again later.'), findsOneWidget);
+
       final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+
       expect(snackBar.backgroundColor, BrixelColors.danger);
     });
 
@@ -159,17 +189,23 @@ void main() {
       await tester.pumpWidget(buildTestApp(auth));
 
       final emailField = find.widgetWithText(TextFormField, 'Email');
+
       final passwordField = find.widgetWithText(TextFormField, 'Password');
 
       await tester.enterText(emailField, 'arjun@brixel.app');
+
       await tester.enterText(passwordField, 'secretPass123');
+
       await tester.pump();
 
       await tester.tap(find.byKey(const Key('loginButton')));
+
       await tester.pump();
 
       expect(find.text('Login failed. Please try again.'), findsOneWidget);
+
       final snackBar = tester.widget<SnackBar>(find.byType(SnackBar));
+
       expect(snackBar.backgroundColor, BrixelColors.danger);
     });
   });
@@ -183,22 +219,29 @@ void main() {
         await tester.pumpWidget(buildTestApp(auth));
 
         final emailField = find.widgetWithText(TextFormField, 'Email');
+
         final passwordField = find.widgetWithText(TextFormField, 'Password');
 
         await tester.enterText(emailField, 'meera@brixel.app');
+
         await tester.enterText(passwordField, 'validPass123');
+
         await tester.pump();
 
         await tester.tap(find.byKey(const Key('loginButton')));
+
         await tester.pumpAndSettle();
 
         expect(auth.callCount, 1);
+
         expect(auth.submittedEmail, 'meera@brixel.app');
+
         expect(auth.submittedPassword, 'validPass123');
 
-        // Confirms pushReplacement redirected to SiteSelectionScreen
         expect(find.byType(SiteSelectionScreen), findsOneWidget);
+
         expect(find.byType(LoginScreen), findsNothing);
+
         expect(find.text('Select a site'), findsOneWidget);
       },
     );
@@ -220,10 +263,45 @@ void main() {
       );
 
       await tester.tap(find.byKey(const Key('goToSignUpButton')));
+
       await tester.pumpAndSettle();
 
       expect(find.byType(SignUpScreen), findsOneWidget);
+
       expect(find.text('Join Brixel'), findsOneWidget);
+    });
+
+    testWidgets('can defer successful login routing to auth state gate', (
+      WidgetTester tester,
+    ) async {
+      final auth = FakeUserAuthentication();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildBrixelTheme(),
+          home: LoginScreen(authService: auth, navigateAfterSignIn: false),
+        ),
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Email'),
+        'meera@brixel.app',
+      );
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'),
+        'validPass123',
+      );
+
+      await tester.tap(find.byKey(const Key('loginButton')));
+
+      await tester.pumpAndSettle();
+
+      expect(auth.callCount, 1);
+
+      expect(find.byType(LoginScreen), findsOneWidget);
+
+      expect(find.byType(SiteSelectionScreen), findsNothing);
     });
   });
 }

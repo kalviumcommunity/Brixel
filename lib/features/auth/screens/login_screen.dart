@@ -13,11 +13,13 @@ class LoginScreen extends StatefulWidget {
     this.authService,
     this.destinationBuilder,
     this.signUpScreenBuilder,
+    this.navigateAfterSignIn = true,
   });
 
   final UserAuthentication? authService;
   final WidgetBuilder? destinationBuilder;
   final WidgetBuilder? signUpScreenBuilder;
+  final bool navigateAfterSignIn;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -78,6 +80,10 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (!mounted) {
+        return;
+      }
+
+      if (!widget.navigateAfterSignIn) {
         return;
       }
 
