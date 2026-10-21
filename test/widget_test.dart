@@ -23,7 +23,7 @@ void main() {
 
     // Open Attendance from the bottom navigation bar.
     final attendanceTab = find.descendant(
-      of: find.byType(NavigationBar),
+      of: find.byType(BottomNavigationBar),
       matching: find.text('Attendance'),
     );
 
@@ -51,7 +51,7 @@ void main() {
     await tester.pumpAndSettle();
 
     final safetyTab = find.descendant(
-      of: find.byType(NavigationBar),
+      of: find.byType(BottomNavigationBar),
       matching: find.text('Safety'),
     );
 
@@ -67,7 +67,7 @@ void main() {
     );
 
     final moreTab = find.descendant(
-      of: find.byType(NavigationBar),
+      of: find.byType(BottomNavigationBar),
       matching: find.text('More'),
     );
     await tester.tap(moreTab);
