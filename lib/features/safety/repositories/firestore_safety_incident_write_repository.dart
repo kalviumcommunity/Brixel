@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart';
 import 'package:brixel/core/services/firestore_database_service.dart';
 import 'package:brixel/core/utils/site_scope_guard.dart';
 import 'package:brixel/features/safety/models/incident_model.dart';
 import 'package:brixel/features/safety/repositories/safety_incident_write_repository.dart';
+import 'package:brixel/core/utils/async_retry.dart';
 
 class FirestoreSafetyIncidentWriteRepository
     implements SafetyIncidentWriteRepository {
@@ -14,6 +14,25 @@ class FirestoreSafetyIncidentWriteRepository
   }) : _databaseService = databaseService ?? FirestoreDatabaseService();
 
   final FirestoreDatabaseService _databaseService;
+
+  static bool _isRetryableError(Object error) {
+    if (error is TimeoutException) {
+      return true;
+    }
+
+    if (error is FirebaseException) {
+      const retryableCodes = {
+        'aborted',
+        'deadline-exceeded',
+        'resource-exhausted',
+        'unavailable',
+      };
+
+      return retryableCodes.contains(error.code);
+    }
+
+    return false;
+  }
 
   @override
   Future<String> addIncident({
@@ -76,18 +95,15 @@ class FirestoreSafetyIncidentWriteRepository
       updates['resolvedAt'] = null;
     }
 
-    try {
-      await _databaseService.incidentsCollection
-          .doc(incidentId)
-          .update(updates)
-          .timeout(const Duration(seconds: 2));
-    } on FirebaseException catch (e) {
-      debugPrint(
-        'Firestore update FirebaseException: ${e.code} - ${e.message}',
-      );
-    } on TimeoutException {
-      debugPrint('Firestore update timed out: proceeding with local update.');
-    }
+    await runWithRetry<void>(
+      operation: () {
+        return _databaseService.incidentsCollection
+            .doc(incidentId)
+            .update(updates)
+            .timeout(const Duration(seconds: 2));
+      },
+      shouldRetry: _isRetryableError,
+    );
   }
 
   @override
@@ -112,18 +128,15 @@ class FirestoreSafetyIncidentWriteRepository
     final payload = Map<String, dynamic>.from(fields);
     payload['updatedAt'] = FieldValue.serverTimestamp();
 
-    try {
-      await _databaseService.incidentsCollection
-          .doc(incidentId)
-          .update(payload)
-          .timeout(const Duration(seconds: 2));
-    } on FirebaseException catch (e) {
-      debugPrint(
-        'Firestore update FirebaseException: ${e.code} - ${e.message}',
-      );
-    } on TimeoutException {
-      debugPrint('Firestore update timed out: proceeding with local update.');
-    }
+    await runWithRetry<void>(
+      operation: () {
+        return _databaseService.incidentsCollection
+            .doc(incidentId)
+            .update(payload)
+            .timeout(const Duration(seconds: 2));
+      },
+      shouldRetry: _isRetryableError,
+    );
   }
 
   @override
@@ -133,17 +146,14 @@ class FirestoreSafetyIncidentWriteRepository
       throw ArgumentError('Incident document ID cannot be empty.');
     }
 
-    try {
-      await _databaseService.incidentsCollection
-          .doc(normalizedId)
-          .delete()
-          .timeout(const Duration(seconds: 2));
-    } on FirebaseException catch (e) {
-      debugPrint(
-        'Firestore delete FirebaseException: ${e.code} - ${e.message}',
-      );
-    } on TimeoutException {
-      debugPrint('Firestore delete timed out: proceeding with local update.');
-    }
+    await runWithRetry<void>(
+      operation: () {
+        return _databaseService.incidentsCollection
+            .doc(normalizedId)
+            .delete()
+            .timeout(const Duration(seconds: 2));
+      },
+      shouldRetry: _isRetryableError,
+    );
   }
 }
