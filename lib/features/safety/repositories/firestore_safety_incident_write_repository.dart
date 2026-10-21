@@ -15,6 +15,13 @@ class FirestoreSafetyIncidentWriteRepository
 
   final FirestoreDatabaseService _databaseService;
 
+  static Map<String, dynamic> buildCreatePayload(IncidentModel incident) {
+    return incident.toMap()..['createdAt'] = FieldValue.serverTimestamp();
+  }
+
+  @override
+  String createIncidentId() => _databaseService.incidentsCollection.doc().id;
+
   static bool _isRetryableError(Object error) {
     if (error is TimeoutException) {
       return true;
@@ -56,9 +63,16 @@ class FirestoreSafetyIncidentWriteRepository
       );
     }
 
-    final document = await _databaseService.incidentsCollection.add(
-      incident.toMap(),
-    );
+    final payload = buildCreatePayload(incident);
+    final incidentId = incident.id.trim();
+    final document = incidentId.isEmpty
+        ? await _databaseService.incidentsCollection.add(payload)
+        : await _databaseService.incidentsCollection
+              .doc(incidentId)
+              .set(payload)
+              .then(
+                (_) => _databaseService.incidentsCollection.doc(incidentId),
+              );
 
     return document.id;
   }

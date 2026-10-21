@@ -1,6 +1,8 @@
 import 'package:brixel/features/safety/models/incident_model.dart';
 
 abstract class SafetyIncidentWriteRepository {
+  String createIncidentId();
+
   Future<String> addIncident({
     required String activeSiteId,
     required IncidentModel incident,

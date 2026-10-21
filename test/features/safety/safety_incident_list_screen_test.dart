@@ -12,6 +12,9 @@ class MockSafetyIncidentRepository implements SafetyIncidentWriteRepository {
   bool shouldThrowError = false;
 
   @override
+  String createIncidentId() => 'new-id';
+
+  @override
   Future<String> addIncident({
     required String activeSiteId,
     required IncidentModel incident,
@@ -133,6 +136,32 @@ void main() {
     // Initial metrics
     expect(find.text('Total Incidents'), findsOneWidget);
     expect(find.text('3'), findsOneWidget); // total
+  });
+
+  testWidgets('shows evidence only for incidents with a photo URL', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final withPhoto = testIncidents[0].copyWith(
+      photoUrl: 'https://example.test/evidence.jpg',
+    );
+    final withoutPhoto = testIncidents[1];
+
+    await tester.pumpWidget(
+      buildTestWidget(
+        repository: MockSafetyIncidentRepository(),
+        incidents: [withPhoto, withoutPhoto],
+      ),
+    );
+    await tester.pump();
+
+    expect(find.byKey(const Key('evidenceImage_inc_001')), findsOneWidget);
+    expect(find.byKey(const Key('evidenceImage_inc_002')), findsNothing);
+    expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+    expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
   });
 
   testWidgets(

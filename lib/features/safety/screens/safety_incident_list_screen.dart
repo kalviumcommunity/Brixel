@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/safety/models/incident_model.dart';
 import 'package:brixel/features/safety/repositories/firestore_safety_incident_read_repository.dart';
@@ -64,10 +65,8 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   @override
   void initState() {
     super.initState();
-    _writeRepository =
-        widget.repository ?? _resolveDefaultWriteRepository();
-    _readRepository =
-        widget.readRepository ?? _resolveDefaultReadRepository();
+    _writeRepository = widget.repository ?? _resolveDefaultWriteRepository();
+    _readRepository = widget.readRepository ?? _resolveDefaultReadRepository();
 
     if (widget.incidentStream != null) {
       _incidentsStream = widget.incidentStream!;
@@ -96,8 +95,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           siteId: widget.site.id,
           incidentType: 'hazard',
           severity: 'medium',
-          description:
-              'Uncovered electrical trench near worker entry gate 3.',
+          description: 'Uncovered electrical trench near worker entry gate 3.',
           status: 'reported',
           reportedBy: 'usr_sup_102',
           createdAt: now.subtract(const Duration(hours: 5)),
@@ -268,7 +266,8 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   }
 
   Future<void> _addQuickIncident() async {
-    final newId = 'inc_${widget.site.id}_${DateTime.now().millisecondsSinceEpoch % 10000}';
+    final newId =
+        'inc_${widget.site.id}_${DateTime.now().millisecondsSinceEpoch % 10000}';
     final newIncident = IncidentModel(
       id: newId,
       siteId: widget.site.id,
@@ -335,7 +334,10 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
     }
   }
 
-  List<IncidentModel> _filterList(List<IncidentModel> list, IncidentFilter filter) {
+  List<IncidentModel> _filterList(
+    List<IncidentModel> list,
+    IncidentFilter filter,
+  ) {
     switch (filter) {
       case IncidentFilter.all:
         return list;
@@ -381,8 +383,11 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
             onPressed: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      SafetyIncidentFormScreen(siteName: widget.site.name),
+                  builder: (_) => SafetyIncidentFormScreen(
+                    siteId: widget.site.id,
+                    siteName: widget.site.name,
+                    repository: _writeRepository,
+                  ),
                 ),
               );
             },
@@ -436,12 +441,15 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
             // Live stream data
             final incidents = snapshot.data ?? [];
             final totalCount = incidents.length;
-            final reportedCount =
-                incidents.where((i) => i.status == 'reported').length;
-            final acknowledgedCount =
-                incidents.where((i) => i.status == 'acknowledged').length;
-            final resolvedCount =
-                incidents.where((i) => i.status == 'resolved').length;
+            final reportedCount = incidents
+                .where((i) => i.status == 'reported')
+                .length;
+            final acknowledgedCount = incidents
+                .where((i) => i.status == 'acknowledged')
+                .length;
+            final resolvedCount = incidents
+                .where((i) => i.status == 'resolved')
+                .length;
 
             final filtered = _filterList(incidents, _activeFilter);
 
@@ -569,7 +577,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                             Icon(
                               Icons.check_circle_outline,
                               size: 48,
-                              color: BrixelColors.success.withValues(alpha: 0.6),
+                              color: BrixelColors.success.withValues(
+                                alpha: 0.6,
+                              ),
                             ),
                             const SizedBox(height: 8),
                             Text(
@@ -706,7 +716,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                     decoration: BoxDecoration(
                       color: statColor.withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: statColor.withValues(alpha: 0.4)),
+                      border: Border.all(
+                        color: statColor.withValues(alpha: 0.4),
+                      ),
                     ),
                     child: Text(
                       incident.status[0].toUpperCase() +
@@ -764,6 +776,38 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
               fontWeight: FontWeight.w500,
             ),
           ),
+          if (incident.photoUrl != null &&
+              incident.photoUrl!.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                incident.photoUrl!,
+                key: Key('evidenceImage_${incident.id}'),
+                height: 180,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return const SizedBox(
+                    height: 180,
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) => Container(
+                  key: Key('evidenceImageError_${incident.id}'),
+                  height: 180,
+                  width: double.infinity,
+                  color: BrixelColors.surfaceAlt,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.broken_image_outlined,
+                    color: BrixelColors.secondaryText,
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 8),
 
           // Reporting metadata
@@ -889,11 +933,14 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
 class _FallbackSafetyIncidentWriteRepository
     implements SafetyIncidentWriteRepository {
   @override
+  String createIncidentId() =>
+      'incident_${DateTime.now().microsecondsSinceEpoch}';
+
+  @override
   Future<String> addIncident({
     required String activeSiteId,
     required IncidentModel incident,
-  }) async =>
-      incident.id;
+  }) async => incident.id;
 
   @override
   Future<void> updateIncidentStatus({

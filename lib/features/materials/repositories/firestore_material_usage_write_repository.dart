@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brixel/core/services/firestore_database_service.dart';
 import 'package:brixel/core/utils/site_scope_guard.dart';
 import 'package:brixel/features/materials/models/material_model.dart';
@@ -10,6 +11,12 @@ class FirestoreMaterialUsageWriteRepository
   }) : _databaseService = databaseService ?? FirestoreDatabaseService();
 
   final FirestoreDatabaseService _databaseService;
+
+  static Map<String, dynamic> buildUsagePayload(
+    MaterialTransactionModel usage,
+  ) {
+    return usage.toMap()..['timestamp'] = FieldValue.serverTimestamp();
+  }
 
   @override
   Future<String> addUsage({
@@ -27,9 +34,8 @@ class FirestoreMaterialUsageWriteRepository
       );
     }
 
-    final document = await _databaseService.transactionsCollection.add(
-      usage.toMap(),
-    );
+    final payload = buildUsagePayload(usage);
+    final document = await _databaseService.transactionsCollection.add(payload);
 
     return document.id;
   }
