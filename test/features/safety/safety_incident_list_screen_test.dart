@@ -253,4 +253,33 @@ void main() {
     // Error SnackBar shown
     expect(find.textContaining('Failed to update incident:'), findsOneWidget);
   });
+
+  testWidgets('keeps incident visible and shows error when delete fails', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final repository = MockSafetyIncidentRepository()..shouldThrowError = true;
+
+    await tester.pumpWidget(buildTestWidget(repository: repository));
+
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('delete_inc_001')));
+
+    await tester.pumpAndSettle();
+
+    // The repository failed, so the incident must
+    // remain in the local UI.
+    expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+
+    expect(repository.deletedIncidentIds, isEmpty);
+
+    expect(find.textContaining('Failed to delete incident:'), findsOneWidget);
+  });
 }
