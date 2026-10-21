@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:brixel/features/auth/models/user_model.dart';
 import 'package:brixel/features/auth/repositories/user_repository.dart';
 import 'package:brixel/features/auth/screens/auth_state_gate.dart';
@@ -95,19 +97,55 @@ void main() {
     expect(find.text('PENDING DESTINATION'), findsOneWidget);
   });
 
-  testWidgets('routes supervisor to supervisor destination', (tester) async {
-    await tester.pumpWidget(
-      buildApp(
-        authStream: Stream.value('user-1'),
-        profiles: {'user-1': buildProfile(role: 'supervisor')},
-      ),
-    );
+  testWidgets(
+    'routes restored authenticated session directly to supervisor destination',
+    (tester) async {
+      await tester.pumpWidget(
+        buildApp(
+          authStream: Stream.value('user-1'),
+          profiles: {'user-1': buildProfile(role: 'supervisor')},
+        ),
+      );
 
-    await tester.pumpAndSettle();
+      await tester.pumpAndSettle();
 
-    expect(find.text('SUPERVISOR DESTINATION'), findsOneWidget);
+      expect(find.text('SUPERVISOR DESTINATION'), findsOneWidget);
 
-    expect(find.text('MANAGER DESTINATION'), findsNothing);
+      expect(find.text('Welcome Back'), findsNothing);
+
+      expect(find.text('MANAGER DESTINATION'), findsNothing);
+    },
+  );
+
+  testWidgets('reacts to authentication changes while mounted', (tester) async {
+    final controller = StreamController<String?>();
+
+    try {
+      await tester.pumpWidget(
+        buildApp(
+          authStream: controller.stream,
+          profiles: {'user-1': buildProfile(role: 'supervisor')},
+        ),
+      );
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.text('SIGNED OUT DESTINATION'), findsNothing);
+
+      controller.add('user-1');
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.text('SUPERVISOR DESTINATION'), findsOneWidget);
+
+      controller.add(null);
+      await tester.pump();
+
+      expect(find.text('SIGNED OUT DESTINATION'), findsOneWidget);
+      expect(find.text('SUPERVISOR DESTINATION'), findsNothing);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      unawaited(controller.close());
+    }
   });
 
   testWidgets('routes manager to manager destination', (tester) async {
