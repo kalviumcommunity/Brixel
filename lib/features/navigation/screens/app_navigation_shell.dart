@@ -1,3 +1,4 @@
+import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
@@ -8,23 +9,40 @@ import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:flutter/material.dart';
 
 class AppNavigationShell extends StatefulWidget {
-  const AppNavigationShell({super.key, required this.site});
+  const AppNavigationShell({
+    super.key,
+    required this.site,
+    this.initialIndex = 0,
+  });
 
   final Site site;
+  final int initialIndex;
 
   @override
   State<AppNavigationShell> createState() => _AppNavigationShellState();
 }
 
 class _AppNavigationShellState extends State<AppNavigationShell> {
-  int _selectedIndex = 0;
+  late int _selectedIndex;
 
-  late final List<Widget> _screens;
+  late List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
+    _selectedIndex = widget.initialIndex;
+    _buildScreens();
+  }
 
+  @override
+  void didUpdateWidget(covariant AppNavigationShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.site != widget.site) {
+      _buildScreens();
+    }
+  }
+
+  void _buildScreens() {
     _screens = [
       SiteDashboardScreen(site: widget.site),
       AttendanceFormScreen(siteName: widget.site.name),
@@ -48,32 +66,48 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _selectDestination,
-        destinations: const [
-          NavigationDestination(
+      // Task 4: Preserve each tab's state & scroll position using IndexedStack
+      body: IndexedStack(
+        index: _selectedIndex,
+        children: _screens,
+      ),
+      // Task 1, 2 & 3: BottomNavigationBar switching screens and tracking selected tab
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _selectDestination,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: BrixelColors.surface,
+        selectedItemColor: BrixelColors.primary,
+        unselectedItemColor: BrixelColors.secondaryText,
+        selectedFontSize: 12,
+        unselectedFontSize: 12,
+        elevation: 8,
+        items: const [
+          BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            activeIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.badge_outlined),
-            selectedIcon: Icon(Icons.badge),
+            activeIcon: Icon(Icons.badge),
             label: 'Attendance',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.inventory_2_outlined),
-            selectedIcon: Icon(Icons.inventory_2),
+            activeIcon: Icon(Icons.inventory_2),
             label: 'Materials',
           ),
-          NavigationDestination(
+          BottomNavigationBarItem(
             icon: Icon(Icons.warning_amber_outlined),
-            selectedIcon: Icon(Icons.warning_amber),
+            activeIcon: Icon(Icons.warning_amber),
             label: 'Safety',
           ),
-          NavigationDestination(icon: Icon(Icons.menu), label: 'More'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu),
+            activeIcon: Icon(Icons.menu),
+            label: 'More',
+          ),
         ],
       ),
     );
