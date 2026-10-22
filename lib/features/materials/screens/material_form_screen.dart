@@ -5,9 +5,14 @@ import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
 
 class MaterialFormScreen extends StatefulWidget {
-  const MaterialFormScreen({super.key, this.siteName});
+  const MaterialFormScreen({
+    super.key,
+    this.siteName,
+    this.onSubmit,
+  });
 
   final String? siteName;
+  final Future<void> Function(Map<String, dynamic> data)? onSubmit;
 
   @override
   State<MaterialFormScreen> createState() => _MaterialFormScreenState();
@@ -20,6 +25,7 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
   final _notesController = TextEditingController();
 
   String _selectedUnit = 'bags';
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -29,29 +35,58 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
+    if (_isLoading) return;
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final quantity = double.parse(_quantityController.text.trim());
-    final payload = {
-      'materialName': _materialController.text.trim(),
-      'quantity': quantity,
-      'unit': _selectedUnit,
-      'notes': _notesController.text.trim(),
-    };
+    setState(() {
+      _isLoading = true;
+    });
 
-    final materialName = payload['materialName'] as String;
+    try {
+      final quantity = double.parse(_quantityController.text.trim());
+      final payload = {
+        'materialName': _materialController.text.trim(),
+        'quantity': quantity,
+        'unit': _selectedUnit,
+        'notes': _notesController.text.trim(),
+      };
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Material usage recorded locally for $materialName'),
-        backgroundColor: BrixelColors.success,
-      ),
-    );
+      if (widget.onSubmit != null) {
+        await widget.onSubmit!(payload);
+      }
 
-    debugPrint('Material form submitted: $payload');
+      if (!mounted) return;
+
+      final materialName = payload['materialName'] as String;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Material usage recorded locally for $materialName'),
+          backgroundColor: BrixelColors.success,
+        ),
+      );
+
+      debugPrint('Material form submitted: $payload');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to record material usage. Please try again.'),
+            backgroundColor: BrixelColors.danger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -167,9 +202,15 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
               ),
               const SizedBox(height: 20),
               BrixelPrimaryButton(
+                key: const Key('submitMaterialButton'),
                 label: 'Submit Material Usage',
-                onPressed: _submitForm,
+                isLoading: _isLoading,
+                onPressed: _isLoading ? null : _submitForm,
               ),
+              if (_isLoading) ...[
+                const SizedBox(height: 12),
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
         ),
