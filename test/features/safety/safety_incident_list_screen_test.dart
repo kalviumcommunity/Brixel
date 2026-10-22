@@ -285,7 +285,15 @@ void main() {
     );
 
     // Error SnackBar shown
-    expect(find.textContaining('Failed to update incident:'), findsOneWidget);
+    expect(
+      find.text('Could not update the safety incident. Please try again.'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.textContaining('Network timeout during Firestore update'),
+      findsNothing,
+    );
   });
 
   testWidgets('delete opens confirmation without calling the repository', (
@@ -302,8 +310,7 @@ void main() {
     await tester.tap(find.byKey(const Key('delete_inc_001')));
     await tester.pumpAndSettle();
 
-    expect(find.text('Delete incident?'), findsOneWidget);
-    expect(find.text('This action cannot be undone.'), findsOneWidget);
+    expect(find.text('Delete safety incident?'), findsOneWidget);
     expect(repository.deleteCallCount, 0);
   });
 
@@ -320,11 +327,13 @@ void main() {
 
     await tester.tap(find.byKey(const Key('delete_inc_001')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Cancel'));
+    expect(find.text('Delete safety incident?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('cancelDeleteButton')));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
     expect(repository.deleteCallCount, 0);
+    expect(find.text('Delete safety incident?'), findsNothing);
   });
 
   testWidgets('confirming incident deletion calls once and removes the row', (
@@ -340,7 +349,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('delete_inc_001')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirmDeleteIncidentButton')));
+    await tester.tap(find.byKey(const Key('confirmDeleteButton')));
     await tester.pumpAndSettle();
 
     expect(repository.deleteCallCount, 1);
@@ -363,16 +372,19 @@ void main() {
 
       await tester.tap(find.byKey(const Key('delete_inc_001')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const Key('confirmDeleteIncidentButton')));
+      await tester.tap(find.byKey(const Key('confirmDeleteButton')));
       await tester.pumpAndSettle();
 
       expect(repository.deleteCallCount, 1);
       expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
       expect(
-        find.text('Could not delete incident. Please try again.'),
+        find.text('Could not delete the safety incident. Please try again.'),
         findsOneWidget,
       );
-      expect(find.textContaining('Network timeout'), findsNothing);
+      expect(
+        find.textContaining('Network timeout during Firestore delete'),
+        findsNothing,
+      );
       expect(
         find.byKey(const Key('delete_inc_001')).hitTestable(),
         findsOneWidget,
@@ -394,7 +406,7 @@ void main() {
 
     await tester.tap(find.byKey(const Key('delete_inc_001')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('confirmDeleteIncidentButton')));
+    await tester.tap(find.byKey(const Key('confirmDeleteButton')));
     await tester.pump();
 
     final deleteButton = tester.widget<IconButton>(
