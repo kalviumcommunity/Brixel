@@ -280,7 +280,15 @@ void main() {
     );
 
     // Error SnackBar shown
-    expect(find.textContaining('Failed to update incident:'), findsOneWidget);
+    expect(
+      find.text('Could not update the safety incident. Please try again.'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.textContaining('Network timeout during Firestore update'),
+      findsNothing,
+    );
   });
 
   testWidgets('keeps incident visible and shows error when delete fails', (
@@ -300,7 +308,11 @@ void main() {
     expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
 
     await tester.tap(find.byKey(const Key('delete_inc_001')));
+    await tester.pumpAndSettle();
 
+    expect(find.text('Delete safety incident?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('confirmDeleteButton')));
     await tester.pumpAndSettle();
 
     // The repository failed, so the incident must
@@ -309,6 +321,44 @@ void main() {
 
     expect(repository.deletedIncidentIds, isEmpty);
 
-    expect(find.textContaining('Failed to delete incident:'), findsOneWidget);
+    expect(
+      find.text('Could not delete the safety incident. Please try again.'),
+      findsOneWidget,
+    );
+
+    expect(
+      find.textContaining('Network timeout during Firestore delete'),
+      findsNothing,
+    );
+  });
+  testWidgets('cancelling delete confirmation keeps incident unchanged', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final repository = MockSafetyIncidentRepository();
+
+    await tester.pumpWidget(buildTestWidget(repository: repository));
+
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('delete_inc_001')));
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete safety incident?'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('cancelDeleteButton')));
+
+    await tester.pumpAndSettle();
+
+    expect(repository.deletedIncidentIds, isEmpty);
+
+    expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+
+    expect(find.text('Delete safety incident?'), findsNothing);
   });
 }

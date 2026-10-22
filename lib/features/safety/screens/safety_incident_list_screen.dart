@@ -214,7 +214,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to update incident: $e'),
+          content: Text(
+            'Could not update the safety incident. Please try again.',
+          ),
           backgroundColor: BrixelColors.danger,
         ),
       );
@@ -225,6 +227,43 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
         });
       }
     }
+  }
+
+  Future<void> _confirmDeleteIncident(IncidentModel incident) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Delete safety incident?'),
+          content: Text(
+            'Are you sure you want to delete incident ${incident.id}? '
+            'This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              key: const Key('cancelDeleteButton'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              key: const Key('confirmDeleteButton'),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (shouldDelete != true || !mounted) {
+      return;
+    }
+
+    await _deleteIncident(incident);
   }
 
   Future<void> _deleteIncident(IncidentModel incident) async {
@@ -252,7 +291,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to delete incident: $e'),
+          content: Text(
+            'Could not delete the safety incident. Please try again.',
+          ),
           backgroundColor: BrixelColors.danger,
         ),
       );
@@ -301,7 +342,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Failed to add incident: $e'),
+          content: Text('Could not add the safety incident. Please try again.'),
           backgroundColor: BrixelColors.danger,
         ),
       );
@@ -740,7 +781,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                       color: BrixelColors.secondaryText,
                     ),
                     tooltip: 'Delete Incident',
-                    onPressed: () => _deleteIncident(incident),
+                    onPressed: () => _confirmDeleteIncident(incident),
                   ),
                 ],
               ),
