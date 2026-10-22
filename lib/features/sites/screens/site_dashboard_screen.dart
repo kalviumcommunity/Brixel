@@ -1,4 +1,5 @@
 import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
+import 'package:brixel/features/materials/screens/material_delivery_list_screen.dart';
 import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
@@ -61,10 +62,20 @@ class SiteDashboardScreen extends StatelessWidget {
               },
             ),
             const SizedBox(height: 12),
-            const _ReportingModuleCard(
+            _ReportingModuleCard(
               icon: Icons.inventory_2_outlined,
               title: 'Material usage',
               description: 'Record material quantities consumed at this site.',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => MaterialDeliveryListScreen(
+                      siteId: site.id,
+                      siteName: site.name,
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 12),
             _ReportingModuleCard(
