@@ -2,6 +2,7 @@ import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
 import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/screens/sign_up_screen.dart';
+import 'package:brixel/features/materials/screens/material_delivery_list_screen.dart';
 import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
@@ -35,6 +36,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignUpScreen(),
         '/sites': (context) => const SiteSelectionScreen(),
         '/attendance-tracker': (context) => const AttendanceTrackerScreen(),
+        '/material-deliveries': (context) => const MaterialDeliveryListScreen(),
         '/safety-incidents': (context) => const SafetyIncidentListScreen(
           site: Site(
             id: 'site_metro_line1',
