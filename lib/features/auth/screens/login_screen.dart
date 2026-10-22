@@ -192,6 +192,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Enter your password';

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/safety/models/incident_model.dart';
 import 'package:brixel/features/safety/repositories/safety_incident_write_repository.dart';
@@ -9,6 +11,9 @@ import 'package:flutter_test/flutter_test.dart';
 class MockSafetyIncidentRepository implements SafetyIncidentWriteRepository {
   final List<String> updatedIncidentIds = [];
   final List<String> updatedStatuses = [];
+  final List<String> deletedIncidentIds = [];
+  Completer<void>? deleteCompleter;
+  int deleteCallCount = 0;
   bool shouldThrowError = false;
 
   @override
@@ -46,10 +51,10 @@ class MockSafetyIncidentRepository implements SafetyIncidentWriteRepository {
     updatedIncidentIds.add(incidentId);
   }
 
-  final List<String> deletedIncidentIds = [];
-
   @override
   Future<void> deleteIncident({required String incidentId}) async {
+    deleteCallCount++;
+    await deleteCompleter?.future;
     if (shouldThrowError) {
       throw StateError('Network timeout during Firestore delete');
     }
@@ -291,74 +296,129 @@ void main() {
     );
   });
 
-  testWidgets('keeps incident visible and shows error when delete fails', (
+  testWidgets('delete opens confirmation without calling the repository', (
     tester,
   ) async {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1.0;
-
-    addTearDown(() => tester.view.resetPhysicalSize());
-
-    final repository = MockSafetyIncidentRepository()..shouldThrowError = true;
-
-    await tester.pumpWidget(buildTestWidget(repository: repository));
-
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('delete_inc_001')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Delete safety incident?'), findsOneWidget);
-
-    await tester.tap(find.byKey(const Key('confirmDeleteButton')));
-    await tester.pumpAndSettle();
-
-    // The repository failed, so the incident must
-    // remain in the local UI.
-    expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-
-    expect(repository.deletedIncidentIds, isEmpty);
-
-    expect(
-      find.text('Could not delete the safety incident. Please try again.'),
-      findsOneWidget,
-    );
-
-    expect(
-      find.textContaining('Network timeout during Firestore delete'),
-      findsNothing,
-    );
-  });
-  testWidgets('cancelling delete confirmation keeps incident unchanged', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 1600);
-    tester.view.devicePixelRatio = 1.0;
-
     addTearDown(() => tester.view.resetPhysicalSize());
 
     final repository = MockSafetyIncidentRepository();
-
     await tester.pumpWidget(buildTestWidget(repository: repository));
-
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('delete_inc_001')));
-
     await tester.pumpAndSettle();
 
     expect(find.text('Delete safety incident?'), findsOneWidget);
+    expect(repository.deleteCallCount, 0);
+  });
 
-    await tester.tap(find.byKey(const Key('cancelDeleteButton')));
+  testWidgets('canceling incident deletion leaves the record untouched', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
 
+    final repository = MockSafetyIncidentRepository();
+    await tester.pumpWidget(buildTestWidget(repository: repository));
     await tester.pumpAndSettle();
 
-    expect(repository.deletedIncidentIds, isEmpty);
+    await tester.tap(find.byKey(const Key('delete_inc_001')));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete safety incident?'), findsOneWidget);
+    await tester.tap(find.byKey(const Key('cancelDeleteButton')));
+    await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-
+    expect(repository.deleteCallCount, 0);
     expect(find.text('Delete safety incident?'), findsNothing);
+  });
+
+  testWidgets('confirming incident deletion calls once and removes the row', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final repository = MockSafetyIncidentRepository();
+    await tester.pumpWidget(buildTestWidget(repository: repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('delete_inc_001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirmDeleteButton')));
+    await tester.pumpAndSettle();
+
+    expect(repository.deleteCallCount, 1);
+    expect(repository.deletedIncidentIds, ['inc_001']);
+    expect(find.byKey(const Key('docId_inc_001')), findsNothing);
+    expect(find.text('Incident deleted.'), findsOneWidget);
+  });
+
+  testWidgets(
+    'failed deletion keeps incident visible and shows safe feedback',
+    (tester) async {
+      tester.view.physicalSize = const Size(800, 1600);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() => tester.view.resetPhysicalSize());
+
+      final repository = MockSafetyIncidentRepository()
+        ..shouldThrowError = true;
+      await tester.pumpWidget(buildTestWidget(repository: repository));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('delete_inc_001')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('confirmDeleteButton')));
+      await tester.pumpAndSettle();
+
+      expect(repository.deleteCallCount, 1);
+      expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+      expect(
+        find.text('Could not delete the safety incident. Please try again.'),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('Network timeout during Firestore delete'),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key('delete_inc_001')).hitTestable(),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets('disables delete while the repository request is pending', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() => tester.view.resetPhysicalSize());
+
+    final repository = MockSafetyIncidentRepository()
+      ..deleteCompleter = Completer<void>();
+    await tester.pumpWidget(buildTestWidget(repository: repository));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('delete_inc_001')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('confirmDeleteButton')));
+    await tester.pump();
+
+    final deleteButton = tester.widget<IconButton>(
+      find.byKey(const Key('delete_inc_001')),
+    );
+    expect(deleteButton.onPressed, isNull);
+    expect(repository.deleteCallCount, 1);
+
+    repository.deleteCompleter!.complete();
+    await tester.pumpAndSettle();
+
+    expect(repository.deleteCallCount, 1);
+    expect(find.byKey(const Key('docId_inc_001')), findsNothing);
   });
 }

@@ -5,11 +5,7 @@ import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
 
 class MaterialFormScreen extends StatefulWidget {
-  const MaterialFormScreen({
-    super.key,
-    this.siteName,
-    this.onSubmit,
-  });
+  const MaterialFormScreen({super.key, this.siteName, this.onSubmit});
 
   final String? siteName;
   final Future<void> Function(Map<String, dynamic> data)? onSubmit;
@@ -120,6 +116,7 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
                   children: [
                     TextFormField(
                       controller: _materialController,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Material Name',
                         border: OutlineInputBorder(),
@@ -137,6 +134,7 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Quantity',
                         border: OutlineInputBorder(),
@@ -190,6 +188,8 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _notesController,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
                       minLines: 3,
                       maxLines: 5,
                       decoration: const InputDecoration(

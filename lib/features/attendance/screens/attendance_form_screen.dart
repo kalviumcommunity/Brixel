@@ -6,11 +6,7 @@ import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
 
 class AttendanceFormScreen extends StatefulWidget {
-  const AttendanceFormScreen({
-    super.key,
-    this.siteName,
-    this.onSubmit,
-  });
+  const AttendanceFormScreen({super.key, this.siteName, this.onSubmit});
 
   final String? siteName;
   final Future<void> Function(Map<String, dynamic> data)? onSubmit;
@@ -138,6 +134,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                   children: [
                     TextFormField(
                       controller: _workerController,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Worker / Crew Name',
                         border: OutlineInputBorder(),
@@ -152,6 +149,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _tradeController,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Trade',
                         border: OutlineInputBorder(),
@@ -198,6 +196,8 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                       keyboardType: const TextInputType.numberWithOptions(
                         decimal: true,
                       ),
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _submitForm(),
                       decoration: const InputDecoration(
                         labelText: 'Hours Worked',
                         border: OutlineInputBorder(),

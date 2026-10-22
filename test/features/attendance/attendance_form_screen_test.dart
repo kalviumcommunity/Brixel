@@ -3,6 +3,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('attendance fields use appropriate keyboard actions', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: AttendanceFormScreen()));
+
+    final workerField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Worker / Crew Name'),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final tradeField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Trade'),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final hoursField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Hours Worked'),
+        matching: find.byType(EditableText),
+      ),
+    );
+
+    expect(workerField.textInputAction, TextInputAction.next);
+    expect(tradeField.textInputAction, TextInputAction.next);
+    expect(
+      hoursField.keyboardType,
+      const TextInputType.numberWithOptions(decimal: true),
+    );
+    expect(hoursField.textInputAction, TextInputAction.done);
+    expect(hoursField.onSubmitted, isNotNull);
+  });
+
   testWidgets('attendance form renders and can submit', (tester) async {
     await tester.pumpWidget(const MaterialApp(home: AttendanceFormScreen()));
 

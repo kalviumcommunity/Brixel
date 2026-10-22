@@ -385,7 +385,10 @@ class _MaterialDeliveryListScreenState
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: BrixelColors.surface,
                   borderRadius: BorderRadius.circular(12),
@@ -394,13 +397,29 @@ class _MaterialDeliveryListScreenState
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildMetricCol('Total', '${_deliveries.length}', BrixelColors.primaryText),
+                    _buildMetricCol(
+                      'Total',
+                      '${_deliveries.length}',
+                      BrixelColors.primaryText,
+                    ),
                     Container(height: 28, width: 1, color: BrixelColors.border),
-                    _buildMetricCol('Delivered', '$_deliveredCount', BrixelColors.success),
+                    _buildMetricCol(
+                      'Delivered',
+                      '$_deliveredCount',
+                      BrixelColors.success,
+                    ),
                     Container(height: 28, width: 1, color: BrixelColors.border),
-                    _buildMetricCol('In Transit', '$_inTransitCount', BrixelColors.primary),
+                    _buildMetricCol(
+                      'In Transit',
+                      '$_inTransitCount',
+                      BrixelColors.primary,
+                    ),
                     Container(height: 28, width: 1, color: BrixelColors.border),
-                    _buildMetricCol('Pending', '$_pendingCount', BrixelColors.secondaryText),
+                    _buildMetricCol(
+                      'Pending',
+                      '$_pendingCount',
+                      BrixelColors.secondaryText,
+                    ),
                   ],
                 ),
               ),
@@ -411,7 +430,11 @@ class _MaterialDeliveryListScreenState
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               child: Row(
                 children: [
-                  const Icon(Icons.swap_vert, size: 18, color: BrixelColors.secondaryText),
+                  const Icon(
+                    Icons.swap_vert,
+                    size: 18,
+                    color: BrixelColors.secondaryText,
+                  ),
                   const SizedBox(width: 4),
                   Text(
                     'Dynamic Builder Feed (${_deliveries.length} items)',
@@ -436,7 +459,9 @@ class _MaterialDeliveryListScreenState
                           Icon(
                             Icons.inventory_2_outlined,
                             size: 48,
-                            color: BrixelColors.secondaryText.withValues(alpha: 0.5),
+                            color: BrixelColors.secondaryText.withValues(
+                              alpha: 0.5,
+                            ),
                           ),
                           const SizedBox(height: 12),
                           Text(
@@ -454,7 +479,10 @@ class _MaterialDeliveryListScreenState
                   : ListView.builder(
                       key: const Key('materialDeliveryListView'),
                       physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       itemCount: _deliveries.length,
                       itemBuilder: (context, index) {
                         // Task 2: Generate item widget directly from model object
@@ -474,33 +502,41 @@ class _MaterialDeliveryListScreenState
                                   children: [
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             delivery.materialName,
-                                            style: textTheme.titleMedium?.copyWith(
-                                              fontWeight: FontWeight.w700,
-                                            ),
+                                            style: textTheme.titleMedium
+                                                ?.copyWith(
+                                                  fontWeight: FontWeight.w700,
+                                                ),
                                           ),
                                           const SizedBox(height: 4),
                                           Row(
                                             children: [
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: BrixelColors.background,
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: BrixelColors.border),
+                                                  color:
+                                                      BrixelColors.background,
+                                                  borderRadius:
+                                                      BorderRadius.circular(4),
+                                                  border: Border.all(
+                                                    color: BrixelColors.border,
+                                                  ),
                                                 ),
                                                 child: Text(
                                                   delivery.id,
                                                   style: const TextStyle(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.w600,
-                                                    color: BrixelColors.secondaryText,
+                                                    color: BrixelColors
+                                                        .secondaryText,
                                                   ),
                                                 ),
                                               ),
@@ -508,10 +544,13 @@ class _MaterialDeliveryListScreenState
                                               Expanded(
                                                 child: Text(
                                                   delivery.supplier,
-                                                  style: textTheme.bodySmall?.copyWith(
-                                                    color: BrixelColors.secondaryText,
-                                                  ),
-                                                  overflow: TextOverflow.ellipsis,
+                                                  style: textTheme.bodySmall
+                                                      ?.copyWith(
+                                                        color: BrixelColors
+                                                            .secondaryText,
+                                                      ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
                                                 ),
                                               ),
                                             ],
@@ -526,10 +565,14 @@ class _MaterialDeliveryListScreenState
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: statusColor.withValues(alpha: 0.12),
+                                        color: statusColor.withValues(
+                                          alpha: 0.12,
+                                        ),
                                         borderRadius: BorderRadius.circular(8),
                                         border: Border.all(
-                                          color: statusColor.withValues(alpha: 0.4),
+                                          color: statusColor.withValues(
+                                            alpha: 0.4,
+                                          ),
                                         ),
                                       ),
                                       child: Text(
@@ -544,12 +587,16 @@ class _MaterialDeliveryListScreenState
                                   ],
                                 ),
                                 const SizedBox(height: 12),
-                                const Divider(height: 1, color: BrixelColors.border),
+                                const Divider(
+                                  height: 1,
+                                  color: BrixelColors.border,
+                                ),
                                 const SizedBox(height: 8),
 
                                 // Bottom row: Quantity badge, Date, and Delete action button
                                 Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Row(
                                       children: [
@@ -579,14 +626,17 @@ class _MaterialDeliveryListScreenState
                                         ),
                                         const SizedBox(width: 4),
                                         IconButton(
-                                          key: Key('deleteDelivery_${delivery.id}'),
+                                          key: Key(
+                                            'deleteDelivery_${delivery.id}',
+                                          ),
                                           icon: const Icon(
                                             Icons.delete_outline,
                                             size: 18,
                                             color: BrixelColors.secondaryText,
                                           ),
                                           tooltip: 'Remove delivery',
-                                          onPressed: () => _removeDelivery(delivery.id),
+                                          onPressed: () =>
+                                              _removeDelivery(delivery.id),
                                           visualDensity: VisualDensity.compact,
                                         ),
                                       ],

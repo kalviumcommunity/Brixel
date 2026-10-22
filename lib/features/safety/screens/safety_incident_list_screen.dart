@@ -140,10 +140,8 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
               .watchIncidentsForSite(widget.site.id)
               .listen(
                 (liveDocs) {
-                  if (liveDocs.isNotEmpty) {
-                    _cachedIncidents = List.from(liveDocs);
-                    _emitCachedUpdate();
-                  }
+                  _cachedIncidents = List.from(liveDocs);
+                  _emitCachedUpdate();
                 },
                 onError: (error) {
                   debugPrint(
@@ -268,6 +266,12 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
 
   Future<void> _deleteIncident(IncidentModel incident) async {
     final incidentId = incident.id;
+    if (_updatingIds.contains(incidentId)) return;
+
+    if (!mounted || _updatingIds.contains(incidentId)) {
+      return;
+    }
+
     setState(() {
       _updatingIds.add(incidentId);
     });
@@ -282,7 +286,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Deleted incident $incidentId'),
+          content: const Text('Incident deleted.'),
           backgroundColor: BrixelColors.success,
           duration: const Duration(seconds: 2),
         ),
@@ -775,13 +779,20 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                   // Delete button for real-time deletion reflection (Task 4)
                   IconButton(
                     key: Key('delete_${incident.id}'),
-                    icon: const Icon(
-                      Icons.delete_outline,
-                      size: 18,
-                      color: BrixelColors.secondaryText,
-                    ),
+                    icon: isUpdating
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(
+                            Icons.delete_outline,
+                            size: 18,
+                            color: BrixelColors.secondaryText,
+                          ),
                     tooltip: 'Delete Incident',
-                    onPressed: () => _confirmDeleteIncident(incident),
+                    onPressed: isUpdating
+                        ? null
+                        : () => _confirmDeleteIncident(incident),
                   ),
                 ],
               ),

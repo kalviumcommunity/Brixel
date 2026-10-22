@@ -35,6 +35,23 @@ void main() {
     return MaterialApp(home: SignUpScreen(registrationService: registration));
   }
 
+  testWidgets('signup uses email keyboard and obscures password fields', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(buildTestApp(FakeUserRegistration()));
+
+    final fields = tester.widgetList<EditableText>(find.byType(EditableText));
+    final fieldList = fields.toList();
+
+    expect(fieldList[1].keyboardType, TextInputType.emailAddress);
+    expect(fieldList[1].textInputAction, TextInputAction.next);
+    expect(fieldList[2].obscureText, isTrue);
+    expect(fieldList[2].textInputAction, TextInputAction.next);
+    expect(fieldList[3].obscureText, isTrue);
+    expect(fieldList[3].textInputAction, TextInputAction.done);
+    expect(fieldList[3].onSubmitted, isNotNull);
+  });
+
   testWidgets('shows validation errors and does not register invalid input', (
     WidgetTester tester,
   ) async {
