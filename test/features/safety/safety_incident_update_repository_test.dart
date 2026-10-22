@@ -8,6 +8,9 @@ class CapturingSafetyIncidentRepository
   String? lastUpdatedId;
   Map<String, dynamic>? lastUpdatedFields;
 
+  @override
+  String createIncidentId() => 'new-incident-id';
+
   void seedIncident(IncidentModel incident) {
     storage[incident.id] = incident;
   }

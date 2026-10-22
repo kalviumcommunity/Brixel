@@ -2,9 +2,38 @@ import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
 import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
+import 'package:brixel/features/safety/models/incident_model.dart';
+import 'package:brixel/features/safety/repositories/safety_incident_write_repository.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _SafetyIncidentRepository implements SafetyIncidentWriteRepository {
+  @override
+  String createIncidentId() => 'test-incident';
+
+  @override
+  Future<String> addIncident({
+    required String activeSiteId,
+    required IncidentModel incident,
+  }) async => incident.id;
+
+  @override
+  Future<void> deleteIncident({required String incidentId}) async {}
+
+  @override
+  Future<void> updateIncidentFields({
+    required String incidentId,
+    required Map<String, dynamic> fields,
+  }) async {}
+
+  @override
+  Future<void> updateIncidentStatus({
+    required String incidentId,
+    required String status,
+    String? resolvedBy,
+  }) async {}
+}
 
 void main() {
   group('AttendanceFormScreen validation', () {
@@ -188,7 +217,11 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: buildBrixelTheme(),
-            home: const SafetyIncidentFormScreen(),
+            home: SafetyIncidentFormScreen(
+              siteId: 'test-site',
+              reportedBy: 'test-user',
+              repository: _SafetyIncidentRepository(),
+            ),
           ),
         );
 

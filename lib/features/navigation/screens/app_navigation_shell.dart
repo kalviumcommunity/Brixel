@@ -47,7 +47,10 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
       SiteDashboardScreen(site: widget.site),
       AttendanceFormScreen(siteName: widget.site.name),
       MaterialFormScreen(siteName: widget.site.name),
-      SafetyIncidentFormScreen(siteName: widget.site.name),
+      SafetyIncidentFormScreen(
+        siteId: widget.site.id,
+        siteName: widget.site.name,
+      ),
       _ModulePlaceholderScreen(
         title: 'More',
         description: 'Manage your Brixel session for ${widget.site.name}.',

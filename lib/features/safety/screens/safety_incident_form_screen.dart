@@ -1,13 +1,35 @@
+import 'dart:typed_data';
+
 import 'package:brixel/core/theme/brixel_theme.dart';
+import 'package:brixel/features/auth/services/firebase_auth_service.dart';
+import 'package:brixel/features/safety/models/incident_model.dart';
+import 'package:brixel/features/safety/repositories/firestore_safety_incident_write_repository.dart';
+import 'package:brixel/features/safety/repositories/safety_incident_write_repository.dart';
+import 'package:brixel/features/safety/storage/firebase_safety_evidence_storage.dart';
+import 'package:brixel/features/safety/storage/safety_evidence_storage.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class SafetyIncidentFormScreen extends StatefulWidget {
-  const SafetyIncidentFormScreen({super.key, this.siteName});
+  const SafetyIncidentFormScreen({
+    super.key,
+    required this.siteId,
+    this.siteName,
+    this.reportedBy,
+    this.repository,
+    this.evidenceStorage,
+    this.pickImage,
+  });
 
+  final String siteId;
   final String? siteName;
+  final String? reportedBy;
+  final SafetyIncidentWriteRepository? repository;
+  final SafetyEvidenceStorage? evidenceStorage;
+  final Future<XFile?> Function()? pickImage;
 
   @override
   State<SafetyIncidentFormScreen> createState() =>
@@ -19,8 +41,16 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
 
+  late final SafetyIncidentWriteRepository _repository =
+      widget.repository ?? FirestoreSafetyIncidentWriteRepository();
+  late final SafetyEvidenceStorage _evidenceStorage =
+      widget.evidenceStorage ?? FirebaseSafetyEvidenceStorage();
+
   String _selectedIncidentType = 'Fall';
   String _selectedSeverity = 'Medium';
+  XFile? _selectedImage;
+  Uint8List? _selectedImageBytes;
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
@@ -29,29 +59,164 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
     super.dispose();
   }
 
-  void _submitForm() {
-    if (!_formKey.currentState!.validate()) {
+  Future<XFile?> _pickFromGallery() {
+    return ImagePicker().pickImage(source: ImageSource.gallery);
+  }
+
+  void _showError(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: BrixelColors.danger),
+    );
+  }
+
+  Future<void> _selectImage() async {
+    try {
+      final image = await (widget.pickImage ?? _pickFromGallery)();
+      if (image == null) return;
+
+      final bytes = await image.readAsBytes();
+      if (!mounted) return;
+
+      setState(() {
+        _selectedImage = image;
+        _selectedImageBytes = bytes;
+      });
+    } catch (_) {
+      if (mounted) {
+        _showError('Could not select that image. Please try again.');
+      }
+    }
+  }
+
+  String _contentTypeFor(XFile image) {
+    final mimeType = image.mimeType?.trim();
+    if (mimeType != null &&
+        mimeType.startsWith('image/') &&
+        mimeType.isNotEmpty) {
+      return mimeType;
+    }
+
+    switch (image.name.split('.').last.toLowerCase()) {
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      case 'gif':
+        return 'image/gif';
+      case 'heic':
+        return 'image/heic';
+      case 'heif':
+        return 'image/heif';
+      default:
+        return 'image/jpeg';
+    }
+  }
+
+  String _fileNameFor(XFile image) {
+    if (image.name.trim().isNotEmpty) return image.name;
+
+    switch (image.mimeType?.toLowerCase()) {
+      case 'image/png':
+        return 'evidence.png';
+      case 'image/webp':
+        return 'evidence.webp';
+      case 'image/gif':
+        return 'evidence.gif';
+      case 'image/heic':
+        return 'evidence.heic';
+      case 'image/heif':
+        return 'evidence.heif';
+      default:
+        return 'evidence.jpg';
+    }
+  }
+
+  String _incidentTypeValue(String type) {
+    switch (type) {
+      case 'Fall':
+        return 'fall';
+      case 'Equipment':
+        return 'equipment_failure';
+      case 'Injury':
+        return 'injury';
+      default:
+        return 'hazard';
+    }
+  }
+
+  Future<void> _submitForm() async {
+    if (_isSubmitting || !_formKey.currentState!.validate()) {
       return;
     }
 
-    final description = _descriptionController.text.trim();
-    final payload = {
-      'location': _locationController.text.trim(),
-      'incidentType': _selectedIncidentType,
-      'severity': _selectedSeverity,
-      'description': description,
-    };
+    final reportedBy =
+        widget.reportedBy ?? FirebaseAuthService().currentUser?.uid ?? '';
+    if (reportedBy.trim().isEmpty) {
+      _showError('Could not verify your account. Please sign in again.');
+      return;
+    }
 
-    final location = payload['location'] as String;
+    setState(() {
+      _isSubmitting = true;
+    });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Safety incident reported for $location'),
-        backgroundColor: BrixelColors.success,
-      ),
-    );
+    try {
+      final incidentId = _repository.createIncidentId();
+      String? photoUrl;
 
-    debugPrint('Safety form submitted: $payload');
+      if (_selectedImage != null && _selectedImageBytes != null) {
+        photoUrl = await _evidenceStorage.uploadEvidence(
+          siteId: widget.siteId,
+          incidentId: incidentId,
+          fileName: _fileNameFor(_selectedImage!),
+          bytes: _selectedImageBytes!,
+          contentType: _contentTypeFor(_selectedImage!),
+        );
+      }
+
+      final incident = IncidentModel(
+        id: incidentId,
+        siteId: widget.siteId,
+        incidentType: _incidentTypeValue(_selectedIncidentType),
+        severity: _selectedSeverity.toLowerCase(),
+        description:
+            '${_locationController.text.trim()}: '
+            '${_descriptionController.text.trim()}',
+        photoUrl: photoUrl,
+        status: 'reported',
+        reportedBy: reportedBy.trim(),
+        createdAt: DateTime.now(),
+      );
+
+      await _repository.addIncident(
+        activeSiteId: widget.siteId,
+        incident: incident,
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Safety incident reported for ${_locationController.text.trim()}',
+          ),
+          backgroundColor: BrixelColors.success,
+        ),
+      );
+      if (Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
+    } catch (_) {
+      if (mounted) {
+        _showError('Could not submit incident. Please try again.');
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
+    }
   }
 
   @override
@@ -119,13 +284,15 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
                                 ),
                               )
                               .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedIncidentType = value;
-                          });
-                        }
-                      },
+                      onChanged: _isSubmitting
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedIncidentType = value;
+                                });
+                              }
+                            },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please select an incident type.';
@@ -148,13 +315,15 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
                             ),
                           )
                           .toList(),
-                      onChanged: (value) {
-                        if (value != null) {
-                          setState(() {
-                            _selectedSeverity = value;
-                          });
-                        }
-                      },
+                      onChanged: _isSubmitting
+                          ? null
+                          : (value) {
+                              if (value != null) {
+                                setState(() {
+                                  _selectedSeverity = value;
+                                });
+                              }
+                            },
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Please select a severity.';
@@ -183,14 +352,64 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
                         return null;
                       },
                     ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Incident Photo / Evidence',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 8),
+                    if (_selectedImageBytes != null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.memory(
+                          _selectedImageBytes!,
+                          key: const Key('selectedEvidencePreview'),
+                          height: 180,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          TextButton.icon(
+                            onPressed: _isSubmitting ? null : _selectImage,
+                            icon: const Icon(Icons.edit_outlined),
+                            label: const Text('Change image'),
+                          ),
+                          TextButton.icon(
+                            key: const Key('removeEvidenceButton'),
+                            onPressed: _isSubmitting
+                                ? null
+                                : () => setState(() {
+                                    _selectedImage = null;
+                                    _selectedImageBytes = null;
+                                  }),
+                            icon: const Icon(Icons.delete_outline),
+                            label: const Text('Remove'),
+                          ),
+                        ],
+                      ),
+                    ] else
+                      OutlinedButton.icon(
+                        key: const Key('selectEvidenceButton'),
+                        onPressed: _isSubmitting ? null : _selectImage,
+                        icon: const Icon(Icons.add_a_photo_outlined),
+                        label: const Text('Select image'),
+                      ),
                   ],
                 ),
               ),
               const SizedBox(height: 20),
               BrixelPrimaryButton(
-                label: 'Submit Incident',
-                onPressed: _submitForm,
+                key: const Key('submitIncidentButton'),
+                label: _isSubmitting ? 'Submitting...' : 'Submit Incident',
+                onPressed: _isSubmitting ? null : _submitForm,
               ),
+              if (_isSubmitting) ...[
+                const SizedBox(height: 12),
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
         ),

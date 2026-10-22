@@ -13,6 +13,9 @@ class TestWriteRepository implements SafetyIncidentWriteRepository {
   final List<String> deletedIds = [];
 
   @override
+  String createIncidentId() => 'new-incident-id';
+
+  @override
   Future<String> addIncident({
     required String activeSiteId,
     required IncidentModel incident,

@@ -9,6 +9,9 @@ class FakeSafetyIncidentWriteRepository
   String? lastActiveSiteId;
 
   @override
+  String createIncidentId() => 'generated-incident-id';
+
+  @override
   Future<String> addIncident({
     required String activeSiteId,
     required IncidentModel incident,
