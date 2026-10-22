@@ -3,6 +3,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('material fields use numeric and multiline input settings', (
+    tester,
+  ) async {
+    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+
+    final quantityField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Quantity'),
+        matching: find.byType(EditableText),
+      ),
+    );
+    final notesField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Notes (optional)'),
+        matching: find.byType(EditableText),
+      ),
+    );
+
+    expect(
+      quantityField.keyboardType,
+      const TextInputType.numberWithOptions(decimal: true),
+    );
+    expect(quantityField.textInputAction, TextInputAction.next);
+    expect(notesField.keyboardType, TextInputType.multiline);
+    expect(notesField.textInputAction, TextInputAction.newline);
+    expect(notesField.maxLines, 5);
+  });
+
   testWidgets('material form renders expected fields and accepts notes', (
     tester,
   ) async {

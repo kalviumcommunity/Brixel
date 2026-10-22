@@ -23,7 +23,8 @@ class BrixelPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final Widget buttonChild;
     if (isLoading) {
-      buttonChild = loadingIndicator ??
+      buttonChild =
+          loadingIndicator ??
           const SizedBox(
             width: 20,
             height: 20,

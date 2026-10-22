@@ -109,6 +109,24 @@ Future<void> scrollToBottom(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('safety description is configured for multiline input', (
+    tester,
+  ) async {
+    await tester.pumpWidget(buildForm());
+
+    final descriptionField = tester.widget<EditableText>(
+      find.descendant(
+        of: find.widgetWithText(TextFormField, 'Description'),
+        matching: find.byType(EditableText),
+      ),
+    );
+
+    expect(descriptionField.keyboardType, TextInputType.multiline);
+    expect(descriptionField.textInputAction, TextInputAction.newline);
+    expect(descriptionField.minLines, 4);
+    expect(descriptionField.maxLines, 6);
+  });
+
   testWidgets('safety form renders and captures details', (tester) async {
     await tester.pumpWidget(buildForm());
 

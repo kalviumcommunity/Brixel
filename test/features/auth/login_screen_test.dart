@@ -38,6 +38,31 @@ void main() {
   }
 
   group('LoginScreen Form Validation', () {
+    testWidgets('uses email keyboard and keeps password obscured initially', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(buildTestApp(FakeUserAuthentication()));
+
+      final emailField = tester.widget<EditableText>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Email'),
+          matching: find.byType(EditableText),
+        ),
+      );
+      final passwordField = tester.widget<EditableText>(
+        find.descendant(
+          of: find.widgetWithText(TextFormField, 'Password'),
+          matching: find.byType(EditableText),
+        ),
+      );
+
+      expect(emailField.keyboardType, TextInputType.emailAddress);
+      expect(emailField.textInputAction, TextInputAction.next);
+      expect(passwordField.obscureText, isTrue);
+      expect(passwordField.textInputAction, TextInputAction.done);
+      expect(passwordField.onSubmitted, isNotNull);
+    });
+
     testWidgets(
       'shows validation errors for empty fields and does not sign in',
       (WidgetTester tester) async {

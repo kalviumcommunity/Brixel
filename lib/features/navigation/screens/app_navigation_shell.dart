@@ -70,10 +70,7 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
   Widget build(BuildContext context) {
     return Scaffold(
       // Task 4: Preserve each tab's state & scroll position using IndexedStack
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _selectedIndex, children: _screens),
       // Task 1, 2 & 3: BottomNavigationBar switching screens and tracking selected tab
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

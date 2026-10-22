@@ -250,6 +250,7 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
                   children: [
                     TextFormField(
                       controller: _locationController,
+                      textInputAction: TextInputAction.next,
                       decoration: const InputDecoration(
                         labelText: 'Location / Site Area',
                         border: OutlineInputBorder(),
@@ -334,6 +335,8 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _descriptionController,
+                      keyboardType: TextInputType.multiline,
+                      textInputAction: TextInputAction.newline,
                       minLines: 4,
                       maxLines: 6,
                       decoration: const InputDecoration(

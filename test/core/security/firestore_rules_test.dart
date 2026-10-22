@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -13,113 +14,223 @@ void main() {
       rulesFile = File('firestore.rules');
       firebaseJsonFile = File('firebase.json');
 
-      expect(rulesFile.existsSync(), isTrue,
-          reason: 'firestore.rules file must exist in the project root');
-      expect(firebaseJsonFile.existsSync(), isTrue,
-          reason: 'firebase.json must exist in the project root');
+      expect(
+        rulesFile.existsSync(),
+        isTrue,
+        reason: 'firestore.rules file must exist in the project root',
+      );
+      expect(
+        firebaseJsonFile.existsSync(),
+        isTrue,
+        reason: 'firebase.json must exist in the project root',
+      );
 
       rulesContent = rulesFile.readAsStringSync();
-      firebaseJson = jsonDecode(firebaseJsonFile.readAsStringSync())
-          as Map<String, dynamic>;
+      firebaseJson = jsonDecode(
+        firebaseJsonFile.readAsStringSync(),
+      ) as Map<String, dynamic>;
     });
 
     test('Task 1: firebase.json properly configures firestore rules path', () {
-      expect(firebaseJson.containsKey('firestore'), isTrue,
-          reason: 'firebase.json must contain firestore configuration');
+      expect(
+        firebaseJson.containsKey('firestore'),
+        isTrue,
+        reason: 'firebase.json must contain firestore configuration',
+      );
       final firestoreConfig = firebaseJson['firestore'] as Map<String, dynamic>;
-      expect(firestoreConfig['rules'], equals('firestore.rules'),
-          reason: 'firebase.json must link firestore.rules');
+      expect(
+        firestoreConfig['rules'],
+        equals('firestore.rules'),
+        reason: 'firebase.json must link firestore.rules',
+      );
     });
 
     test('Task 1: firestore.rules declares rules_version 2 and service cloud.firestore', () {
-      expect(rulesContent, contains("rules_version = '2';"),
-          reason: 'Must declare rules_version 2');
-      expect(rulesContent, contains('service cloud.firestore'),
-          reason: 'Must target cloud.firestore service');
-      expect(rulesContent, contains('match /databases/{database}/documents'),
-          reason: 'Must match document root');
+      expect(
+        rulesContent,
+        contains("rules_version = '2';"),
+        reason: 'Must declare rules_version 2',
+      );
+      expect(
+        rulesContent,
+        contains('service cloud.firestore'),
+        reason: 'Must target cloud.firestore service',
+      );
+      expect(
+        rulesContent,
+        contains('match /databases/{database}/documents'),
+        reason: 'Must match document root',
+      );
     });
 
     test('Task 2 & 3: Declares reusable access control helpers', () {
-      expect(rulesContent, contains('function isAuthenticated()'),
-          reason: 'Must define isAuthenticated helper');
-      expect(rulesContent, contains('request.auth != null'),
-          reason: 'isAuthenticated must verify request.auth != null');
+      expect(
+        rulesContent,
+        contains('function isAuthenticated()'),
+        reason: 'Must define isAuthenticated helper',
+      );
+      expect(
+        rulesContent,
+        contains('request.auth != null'),
+        reason: 'isAuthenticated must verify request.auth != null',
+      );
 
-      expect(rulesContent, contains('function isOwner('),
-          reason: 'Must define isOwner helper');
-      expect(rulesContent, contains('request.auth.uid == userId'),
-          reason: 'isOwner must verify request.auth.uid matches userId');
+      expect(
+        rulesContent,
+        contains('function isOwner('),
+        reason: 'Must define isOwner helper',
+      );
+      expect(
+        rulesContent,
+        contains('request.auth.uid == userId'),
+        reason: 'isOwner must verify request.auth.uid matches userId',
+      );
 
-      expect(rulesContent, contains('function isSupervisorOrManager()'),
-          reason: 'Must define role helper for elevated access');
-      expect(rulesContent, contains('function isManager()'),
-          reason: 'Must define manager role helper');
+      expect(
+        rulesContent,
+        contains('function isSupervisorOrManager()'),
+        reason: 'Must define role helper for elevated access',
+      );
+      expect(
+        rulesContent,
+        contains('function isManager()'),
+        reason: 'Must define manager role helper',
+      );
     });
 
     test('Task 3: Enforces default denial for unmatched paths', () {
-      expect(rulesContent, contains('match /{document=**}'),
-          reason: 'Must include catch-all path match');
-      expect(rulesContent, contains('allow read, write: if false;'),
-          reason: 'Catch-all must explicitly deny read and write');
+      expect(
+        rulesContent,
+        contains('match /{document=**}'),
+        reason: 'Must include catch-all path match',
+      );
+      expect(
+        rulesContent,
+        contains('allow read, write: if false;'),
+        reason: 'Catch-all must explicitly deny read and write',
+      );
     });
 
     test('Task 4: Match rules to Users collection (/users/{userId}) with role lockdown', () {
-      expect(rulesContent, contains('match /users/{userId}'),
-          reason: 'Must have rules for users collection');
-      expect(rulesContent, contains('allow read: if isOwner(userId) || isSupervisorOrManager();'),
-          reason: 'Users can read own profile; supervisors/managers can read');
-      expect(rulesContent, contains("request.resource.data.role == 'pending'"),
-          reason: 'Restricts initial self-registration strictly to pending role');
-      expect(rulesContent, contains('role'),
-          reason: 'Shields role from unauthorized self-elevation');
+      expect(
+        rulesContent,
+        contains('match /users/{userId}'),
+        reason: 'Must have rules for users collection',
+      );
+      expect(
+        rulesContent,
+        contains('allow read: if isOwner(userId) || isSupervisorOrManager();'),
+        reason: 'Users can read own profile; supervisors/managers can read',
+      );
+      expect(
+        rulesContent,
+        contains("request.resource.data.role == 'pending'"),
+        reason: 'Restricts initial self-registration strictly to pending role',
+      );
+      expect(
+        rulesContent,
+        contains('role'),
+        reason: 'Shields role from unauthorized self-elevation',
+      );
     });
 
     test('Task 4: Match rules to Sites collection (/sites/{siteId})', () {
-      expect(rulesContent, contains('match /sites/{siteId}'),
-          reason: 'Must have rules for sites collection');
-      expect(rulesContent, contains('allow read: if isAuthenticated();'),
-          reason: 'Authenticated users can view sites');
-      expect(rulesContent, contains('allow create, update, delete: if isSupervisorOrManager();'),
-          reason: 'Only supervisors/managers can modify site records');
+      expect(
+        rulesContent,
+        contains('match /sites/{siteId}'),
+        reason: 'Must have rules for sites collection',
+      );
+      expect(
+        rulesContent,
+        contains('allow read: if isAuthenticated();'),
+        reason: 'Authenticated users can view sites',
+      );
+      expect(
+        rulesContent,
+        contains('allow create, update, delete: if isSupervisorOrManager();'),
+        reason: 'Only supervisors/managers can modify site records',
+      );
     });
 
     test('Task 4: Match rules to Attendance collection (/attendance/{attendanceId})', () {
-      expect(rulesContent, contains('match /attendance/{attendanceId}'),
-          reason: 'Must have rules for attendance collection');
-      expect(rulesContent, contains('request.resource.data.recordedBy == request.auth.uid'),
-          reason: 'Creating attendance must enforce author identity matching');
-      expect(rulesContent, contains('siteId'),
-          reason: 'Protects siteId and audit keys from falsification on update');
+      expect(
+        rulesContent,
+        contains('match /attendance/{attendanceId}'),
+        reason: 'Must have rules for attendance collection',
+      );
+      expect(
+        rulesContent,
+        contains('request.resource.data.recordedBy == request.auth.uid'),
+        reason: 'Creating attendance must enforce author identity matching',
+      );
+      expect(
+        rulesContent,
+        contains('siteId'),
+        reason: 'Protects siteId and audit keys from falsification on update',
+      );
     });
 
-    test('Task 4: Match rules to Materials collection (/materials/{materialId})', () {
-      expect(rulesContent, contains('match /materials/{materialId}'),
-          reason: 'Must have rules for materials inventory');
-      expect(rulesContent, contains('allow read: if isAuthenticated();'),
-          reason: 'Authenticated users can view inventory');
-      expect(rulesContent, contains('allow create: if isSupervisorOrManager();'),
-          reason: 'Inventory adjustment requires supervisor or manager role');
-    });
+    test(
+      'Task 4: Match rules to Materials collection (/materials/{materialId})',
+      () {
+        expect(
+          rulesContent,
+          contains('match /materials/{materialId}'),
+          reason: 'Must have rules for materials inventory',
+        );
+        expect(
+          rulesContent,
+          contains('allow read: if isAuthenticated();'),
+          reason: 'Authenticated users can view inventory',
+        );
+        expect(
+          rulesContent,
+          contains('allow create: if isSupervisorOrManager();'),
+          reason: 'Inventory adjustment requires supervisor or manager role',
+        );
+      },
+    );
 
     test('Task 4: Match rules to Material Transactions (/material_transactions/{txId}) as immutable audit logs', () {
-      expect(rulesContent, contains('match /material_transactions/{txId}'),
-          reason: 'Must have rules for material transactions audit trail');
-      expect(rulesContent, contains('request.resource.data.recordedBy == request.auth.uid'),
-          reason: 'Transaction creation requires author identity verification');
-      expect(rulesContent, contains('allow update: if isManager()'),
-          reason: 'Restricts transaction modifications exclusively to manager audit corrections');
+      expect(
+        rulesContent,
+        contains('match /material_transactions/{txId}'),
+        reason: 'Must have rules for material transactions audit trail',
+      );
+      expect(
+        rulesContent,
+        contains('request.resource.data.recordedBy == request.auth.uid'),
+        reason: 'Transaction creation requires author identity verification',
+      );
+      expect(
+        rulesContent,
+        contains('allow update: if isManager()'),
+        reason: 'Restricts transaction modifications exclusively to manager audit corrections',
+      );
     });
 
     test('Task 4: Match rules to Safety Incidents (/incidents/{incidentId}) with field-level permissions', () {
-      expect(rulesContent, contains('match /incidents/{incidentId}'),
-          reason: 'Must have rules for safety incidents');
-      expect(rulesContent, contains('request.resource.data.reportedBy == request.auth.uid'),
-          reason: 'Reporting an incident requires matching reporter auth UID');
-      expect(rulesContent, contains("request.resource.data.status == 'reported'"),
-          reason: 'Initial report must have status reported');
-      expect(rulesContent, contains('status'),
-          reason: 'Prevents reporters from altering status and shields audit keys');
+      expect(
+        rulesContent,
+        contains('match /incidents/{incidentId}'),
+        reason: 'Must have rules for safety incidents',
+      );
+      expect(
+        rulesContent,
+        contains('request.resource.data.reportedBy == request.auth.uid'),
+        reason: 'Reporting an incident requires matching reporter auth UID',
+      );
+      expect(
+        rulesContent,
+        contains("request.resource.data.status == 'reported'"),
+        reason: 'Initial report must have status reported',
+      );
+      expect(
+        rulesContent,
+        contains('status'),
+        reason:
+            'Prevents reporters from altering status and shields audit keys',
+      );
     });
   });
 
@@ -217,7 +328,9 @@ void main() {
       if (isReporter && !isElevated) {
         // Reporter CANNOT alter status or resolution fields
         if (incomingDoc['status'] != existingDoc['status']) return false;
-        if (incomingDoc['resolvedBy'] != existingDoc['resolvedBy']) return false;
+        if (incomingDoc['resolvedBy'] != existingDoc['resolvedBy']) {
+          return false;
+        }
         return true;
       }
 
@@ -272,8 +385,12 @@ void main() {
           'assignedSiteIds': [],
         },
       );
-      expect(trySupervisor, isFalse,
-          reason: 'Initial self-registration with supervisor role must be blocked');
+      expect(
+        trySupervisor,
+        isFalse,
+        reason:
+            'Initial self-registration with supervisor role must be blocked',
+      );
 
       // Attempting to self-assign 'manager' -> DENIED
       final tryManager = evaluateUserCreate(
@@ -285,8 +402,11 @@ void main() {
           'assignedSiteIds': [],
         },
       );
-      expect(tryManager, isFalse,
-          reason: 'Initial self-registration with manager role must be blocked');
+      expect(
+        tryManager,
+        isFalse,
+        reason: 'Initial self-registration with manager role must be blocked',
+      );
 
       // Registering as 'pending' with empty assigned sites -> ALLOWED
       final legitimateRegistration = evaluateUserCreate(
@@ -298,8 +418,11 @@ void main() {
           'assignedSiteIds': [],
         },
       );
-      expect(legitimateRegistration, isTrue,
-          reason: 'Self-registration with pending role is permitted');
+      expect(
+        legitimateRegistration,
+        isTrue,
+        reason: 'Self-registration with pending role is permitted',
+      );
     });
 
     test('Task 3: Self-assigning sites during registration is DENIED', () {
@@ -313,8 +436,11 @@ void main() {
           'assignedSiteIds': ['site_metro_line1', 'site_secret_vault'],
         },
       );
-      expect(tryStealSiteAccess, isFalse,
-          reason: 'Users cannot self-assign site access without manager authorization');
+      expect(
+        tryStealSiteAccess,
+        isFalse,
+        reason: 'Users cannot self-assign site access without manager authorization',
+      );
     });
 
     test('Task 3: Users cannot escalate their own role or site access on profile update', () {
@@ -344,13 +470,13 @@ void main() {
         auth: userAuth,
         targetUserId: 'usr_worker_99',
         existingData: existingDoc,
-        incomingData: {
-          ...existingDoc,
-          'role': 'supervisor',
-        },
+        incomingData: {...existingDoc, 'role': 'supervisor'},
       );
-      expect(tryRoleElevation, isFalse,
-          reason: 'User cannot modify their own role');
+      expect(
+        tryRoleElevation,
+        isFalse,
+        reason: 'User cannot modify their own role',
+      );
 
       // Tampering with assignedSiteIds -> DENIED
       final trySiteElevation = evaluateUserUpdate(
@@ -362,8 +488,11 @@ void main() {
           'assignedSiteIds': ['site_metro_line1'],
         },
       );
-      expect(trySiteElevation, isFalse,
-          reason: 'User cannot modify their assigned sites');
+      expect(
+        trySiteElevation,
+        isFalse,
+        reason: 'User cannot modify their assigned sites',
+      );
     });
 
     test('Task 4: Incident reporter CANNOT alter status or audit keys', () {
@@ -392,25 +521,21 @@ void main() {
       final tryTamperStatus = evaluateIncidentUpdate(
         auth: reporterAuth,
         existingDoc: existingIncident,
-        incomingDoc: {
-          ...existingIncident,
-          'status': 'resolved',
-        },
+        incomingDoc: {...existingIncident, 'status': 'resolved'},
       );
-      expect(tryTamperStatus, isFalse,
-          reason: 'Reporters cannot mark their own incidents resolved');
+      expect(
+        tryTamperStatus,
+        isFalse,
+        reason: 'Reporters cannot mark their own incidents resolved',
+      );
 
       // Reporter attempting to alter siteId -> DENIED
       final tryTamperSite = evaluateIncidentUpdate(
         auth: reporterAuth,
         existingDoc: existingIncident,
-        incomingDoc: {
-          ...existingIncident,
-          'siteId': 'site_other_project',
-        },
+        incomingDoc: {...existingIncident, 'siteId': 'site_other_project'},
       );
-      expect(tryTamperSite, isFalse,
-          reason: 'Audit key siteId is immutable');
+      expect(tryTamperSite, isFalse, reason: 'Audit key siteId is immutable');
     });
 
     test('Task 4: Supervisors CAN transition status but CANNOT alter siteId or reportedBy', () {
@@ -428,10 +553,7 @@ void main() {
       final allowedStatusTransition = evaluateIncidentUpdate(
         auth: supervisorAuth,
         existingDoc: existingIncident,
-        incomingDoc: {
-          ...existingIncident,
-          'status': 'acknowledged',
-        },
+        incomingDoc: {...existingIncident, 'status': 'acknowledged'},
       );
       expect(allowedStatusTransition, isTrue);
 
@@ -445,8 +567,11 @@ void main() {
           'reportedBy': 'usr_sup_101',
         },
       );
-      expect(trySpoofReporter, isFalse,
-          reason: 'Audit key reportedBy cannot be altered even by supervisors');
+      expect(
+        trySpoofReporter,
+        isFalse,
+        reason: 'Audit key reportedBy cannot be altered even by supervisors',
+      );
     });
 
     test('Task 4: Material transactions are immutable audit logs for regular users', () {
@@ -464,13 +589,13 @@ void main() {
       final tryAlterQuantity = evaluateTransactionUpdate(
         auth: workerAuth,
         existingDoc: existingTx,
-        incomingDoc: {
-          ...existingTx,
-          'quantity': 5.0,
-        },
+        incomingDoc: {...existingTx, 'quantity': 5.0},
       );
-      expect(tryAlterQuantity, isFalse,
-          reason: 'Transaction audit records cannot be modified by regular users');
+      expect(
+        tryAlterQuantity,
+        isFalse,
+        reason: 'Transaction audit records cannot be modified by regular users',
+      );
 
       // Manager updating note correction without touching quantity/materialId/siteId -> ALLOWED
       final managerAuth = {'uid': 'usr_mgr_201', 'role': 'manager'};

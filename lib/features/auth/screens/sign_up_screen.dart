@@ -209,6 +209,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   ),
                   obscureText: _obscurePassword,
                   textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _submit(),
                   validator: (value) {
                     if (value != _passwordController.text) {
                       return 'Passwords do not match';
