@@ -6,9 +6,14 @@ import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
 
 class AttendanceFormScreen extends StatefulWidget {
-  const AttendanceFormScreen({super.key, this.siteName});
+  const AttendanceFormScreen({
+    super.key,
+    this.siteName,
+    this.onSubmit,
+  });
 
   final String? siteName;
+  final Future<void> Function(Map<String, dynamic> data)? onSubmit;
 
   @override
   State<AttendanceFormScreen> createState() => _AttendanceFormScreenState();
@@ -21,6 +26,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
   final _hoursController = TextEditingController();
 
   String _selectedStatus = 'Present';
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -30,29 +36,58 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
     super.dispose();
   }
 
-  void _submitForm() {
+  Future<void> _submitForm() async {
+    if (_isLoading) return;
+
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
-    final hoursWorked = double.parse(_hoursController.text.trim());
-    final payload = {
-      'workerName': _workerController.text.trim(),
-      'trade': _tradeController.text.trim(),
-      'status': _selectedStatus,
-      'hoursWorked': hoursWorked,
-    };
+    setState(() {
+      _isLoading = true;
+    });
 
-    final workerName = payload['workerName'] as String;
+    try {
+      final hoursWorked = double.parse(_hoursController.text.trim());
+      final payload = {
+        'workerName': _workerController.text.trim(),
+        'trade': _tradeController.text.trim(),
+        'status': _selectedStatus,
+        'hoursWorked': hoursWorked,
+      };
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Attendance recorded locally for $workerName'),
-        backgroundColor: BrixelColors.success,
-      ),
-    );
+      if (widget.onSubmit != null) {
+        await widget.onSubmit!(payload);
+      }
 
-    debugPrint('Attendance form submitted: $payload');
+      if (!mounted) return;
+
+      final workerName = payload['workerName'] as String;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Attendance recorded locally for $workerName'),
+          backgroundColor: BrixelColors.success,
+        ),
+      );
+
+      debugPrint('Attendance form submitted: $payload');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to record attendance. Please try again.'),
+            backgroundColor: BrixelColors.danger,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -190,9 +225,15 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
               ),
               const SizedBox(height: 20),
               BrixelPrimaryButton(
+                key: const Key('submitAttendanceButton'),
                 label: 'Submit Attendance',
-                onPressed: _submitForm,
+                isLoading: _isLoading,
+                onPressed: _isLoading ? null : _submitForm,
               ),
+              if (_isLoading) ...[
+                const SizedBox(height: 12),
+                const Center(child: CircularProgressIndicator()),
+              ],
             ],
           ),
         ),
