@@ -45,6 +45,8 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   List<IncidentModel> _cachedIncidents = [];
   IncidentFilter _activeFilter = IncidentFilter.all;
   final Set<String> _updatingIds = {};
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   static SafetyIncidentWriteRepository _resolveDefaultWriteRepository() {
     try {
@@ -158,6 +160,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     _liveSubscription?.cancel();
     if (widget.incidentStream == null) {
       _streamController.close();
@@ -381,18 +384,26 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
 
   List<IncidentModel> _filterList(
     List<IncidentModel> list,
-    IncidentFilter filter,
-  ) {
-    switch (filter) {
-      case IncidentFilter.all:
-        return list;
-      case IncidentFilter.reported:
-        return list.where((i) => i.status == 'reported').toList();
-      case IncidentFilter.acknowledged:
-        return list.where((i) => i.status == 'acknowledged').toList();
-      case IncidentFilter.resolved:
-        return list.where((i) => i.status == 'resolved').toList();
-    }
+    IncidentFilter filter, [
+    String query = '',
+  ]) {
+    final q = query.trim().toLowerCase();
+    return list.where((incident) {
+      final matchesFilter = switch (filter) {
+        IncidentFilter.all => true,
+        IncidentFilter.reported => incident.status == 'reported',
+        IncidentFilter.acknowledged => incident.status == 'acknowledged',
+        IncidentFilter.resolved => incident.status == 'resolved',
+      };
+      if (!matchesFilter) return false;
+
+      if (q.isEmpty) return true;
+
+      return incident.description.toLowerCase().contains(q) ||
+          incident.incidentType.toLowerCase().contains(q) ||
+          incident.id.toLowerCase().contains(q) ||
+          incident.severity.toLowerCase().contains(q);
+    }).toList();
   }
 
   @override
@@ -496,7 +507,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                 .where((i) => i.status == 'resolved')
                 .length;
 
-            final filtered = _filterList(incidents, _activeFilter);
+            final filtered = _filterList(incidents, _activeFilter, _searchQuery);
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -585,6 +596,53 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                 ),
                 const SizedBox(height: 20),
 
+                // Task 1, 2, 3 & 4: Real-time Live Search Input Field
+                TextField(
+                  key: const Key('incidentSearchField'),
+                  controller: _searchController,
+                  onChanged: (value) {
+                    setState(() {
+                      _searchQuery = value;
+                    });
+                  },
+                  decoration: InputDecoration(
+                    hintText: 'Search incidents by type, description, or ID...',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: BrixelColors.secondaryText,
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: BrixelColors.secondaryText),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            key: const Key('clearSearchButton'),
+                            icon: const Icon(Icons.clear, color: BrixelColors.secondaryText),
+                            tooltip: 'Clear search',
+                            onPressed: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: BrixelColors.surface,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: BrixelColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: BrixelColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: const BorderSide(color: BrixelColors.primary, width: 2),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+
                 // Real-time Filter Chips
                 SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -615,27 +673,49 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                 if (filtered.isEmpty)
                   BrixelSectionCard(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                       child: Center(
                         child: Column(
                           children: [
                             Icon(
-                              Icons.check_circle_outline,
+                              _searchQuery.isNotEmpty
+                                  ? Icons.search_off_outlined
+                                  : Icons.check_circle_outline,
                               size: 48,
-                              color: BrixelColors.success.withValues(
-                                alpha: 0.6,
-                              ),
+                              color: _searchQuery.isNotEmpty
+                                  ? BrixelColors.secondaryText.withValues(alpha: 0.6)
+                                  : BrixelColors.success.withValues(alpha: 0.6),
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'No incidents matching this filter',
+                              _searchQuery.isNotEmpty
+                                  ? 'No matching incidents found'
+                                  : 'No incidents matching this filter',
                               style: textTheme.titleMedium,
+                              textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Site conditions are clear and documented.',
+                              _searchQuery.isNotEmpty
+                                  ? 'No records match "$_searchQuery". Try checking your spelling or selecting another filter.'
+                                  : 'Site conditions are clear and documented.',
                               style: textTheme.bodyMedium,
+                              textAlign: TextAlign.center,
                             ),
+                            if (_searchQuery.isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              OutlinedButton.icon(
+                                key: const Key('emptyStateClearButton'),
+                                icon: const Icon(Icons.clear, size: 16),
+                                label: const Text('Clear Search'),
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {
+                                    _searchQuery = '';
+                                  });
+                                },
+                              ),
+                            ],
                           ],
                         ),
                       ),
