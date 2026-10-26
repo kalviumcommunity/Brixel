@@ -86,135 +86,157 @@ void main() {
   }
 
   group('SafetyIncidentListScreen - Search & Filtering Tests', () {
-    testWidgets('Task 1: Search field renders with appropriate placeholder and icons', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(800, 1600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'Task 1: Search field renders with appropriate placeholder and icons',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
-      final searchFieldFinder = find.byKey(const Key('incidentSearchField'));
-      expect(searchFieldFinder, findsOneWidget);
-      expect(find.text('Search incidents by type, description, or ID...'), findsOneWidget);
-    });
+        final searchFieldFinder = find.byKey(const Key('incidentSearchField'));
+        expect(searchFieldFinder, findsOneWidget);
+        expect(
+          find.text('Search incidents by type, description, or ID...'),
+          findsOneWidget,
+        );
+      },
+    );
 
-    testWidgets('Task 2 & 3: Re-filters list live as user types matching description or type', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(800, 1600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'Task 2 & 3: Re-filters list live as user types matching description or type',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
-      // Initially all 3 incidents are visible
-      expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_003')), findsOneWidget);
+        // Initially all 3 incidents are visible
+        expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_003')), findsOneWidget);
 
-      // Search for 'Crane' (matches inc_001)
-      await tester.enterText(find.byKey(const Key('incidentSearchField')), 'Crane');
-      await tester.pumpAndSettle();
+        // Search for 'Crane' (matches inc_001)
+        await tester.enterText(
+          find.byKey(const Key('incidentSearchField')),
+          'Crane',
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_002')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_003')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_002')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_003')), findsNothing);
 
-      // Search for 'trench' (matches inc_002 case-insensitively)
-      await tester.enterText(find.byKey(const Key('incidentSearchField')), 'trench');
-      await tester.pumpAndSettle();
+        // Search for 'trench' (matches inc_002 case-insensitively)
+        await tester.enterText(
+          find.byKey(const Key('incidentSearchField')),
+          'trench',
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('docId_inc_001')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_003')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_001')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_003')), findsNothing);
 
-      // Search by incidentType 'fall' (matches inc_003)
-      await tester.enterText(find.byKey(const Key('incidentSearchField')), 'fall');
-      await tester.pumpAndSettle();
+        // Search by incidentType 'fall' (matches inc_003)
+        await tester.enterText(
+          find.byKey(const Key('incidentSearchField')),
+          'fall',
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('docId_inc_001')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_002')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_003')), findsOneWidget);
-    });
+        expect(find.byKey(const Key('docId_inc_001')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_002')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_003')), findsOneWidget);
+      },
+    );
 
-    testWidgets('Task 3: Shows "no matches" message and clear button when search is empty', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(800, 1600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'Task 3: Shows "no matches" message and clear button when search is empty',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
-      await tester.enterText(find.byKey(const Key('incidentSearchField')), 'NonExistentTermXYZ');
-      await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const Key('incidentSearchField')),
+          'NonExistentTermXYZ',
+        );
+        await tester.pumpAndSettle();
 
-      // Incidents hidden
-      expect(find.byKey(const Key('docId_inc_001')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_002')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_003')), findsNothing);
+        // Incidents hidden
+        expect(find.byKey(const Key('docId_inc_001')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_002')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_003')), findsNothing);
 
-      // No matches empty message rendered
-      expect(find.text('No matching incidents found'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(BrixelSectionCard),
-          matching: find.textContaining('NonExistentTermXYZ'),
-        ),
-        findsOneWidget,
-      );
+        // No matches empty message rendered
+        expect(find.text('No matching incidents found'), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byType(BrixelSectionCard),
+            matching: find.textContaining('NonExistentTermXYZ'),
+          ),
+          findsOneWidget,
+        );
 
-      // Tap clear search button
-      final clearButton = find.byKey(const Key('clearSearchButton'));
-      expect(clearButton, findsOneWidget);
-      await tester.tap(clearButton);
-      await tester.pumpAndSettle();
+        // Tap clear search button
+        final clearButton = find.byKey(const Key('clearSearchButton'));
+        expect(clearButton, findsOneWidget);
+        await tester.tap(clearButton);
+        await tester.pumpAndSettle();
 
-      // All records restored
-      expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_003')), findsOneWidget);
-    });
+        // All records restored
+        expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_003')), findsOneWidget);
+      },
+    );
 
-    testWidgets('Task 4: Combines text search with Firestore category filter chips', (
-      tester,
-    ) async {
-      tester.view.physicalSize = const Size(800, 1600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() => tester.view.resetPhysicalSize());
+    testWidgets(
+      'Task 4: Combines text search with Firestore category filter chips',
+      (tester) async {
+        tester.view.physicalSize = const Size(800, 1600);
+        tester.view.devicePixelRatio = 1.0;
+        addTearDown(() => tester.view.resetPhysicalSize());
 
-      await tester.pumpWidget(buildTestWidget());
-      await tester.pumpAndSettle();
+        await tester.pumpWidget(buildTestWidget());
+        await tester.pumpAndSettle();
 
-      // Tap 'Reported (2)' filter chip
-      await tester.tap(find.text('Reported (2)'));
-      await tester.pumpAndSettle();
+        // Tap 'Reported (2)' filter chip
+        await tester.tap(find.text('Reported (2)'));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_003')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_002')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_003')), findsNothing);
 
-      // Now search for 'leak' (matches reported inc_001)
-      await tester.enterText(find.byKey(const Key('incidentSearchField')), 'leak');
-      await tester.pumpAndSettle();
+        // Now search for 'leak' (matches reported inc_001)
+        await tester.enterText(
+          find.byKey(const Key('incidentSearchField')),
+          'leak',
+        );
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
-      expect(find.byKey(const Key('docId_inc_002')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_001')), findsOneWidget);
+        expect(find.byKey(const Key('docId_inc_002')), findsNothing);
 
-      // Tap 'Resolved (1)' chip while 'leak' is still typed
-      // Since inc_003 is resolved but does NOT have 'leak', it should show empty state
-      await tester.tap(find.text('Resolved (1)'));
-      await tester.pumpAndSettle();
+        // Tap 'Resolved (1)' chip while 'leak' is still typed
+        // Since inc_003 is resolved but does NOT have 'leak', it should show empty state
+        await tester.tap(find.text('Resolved (1)'));
+        await tester.pumpAndSettle();
 
-      expect(find.byKey(const Key('docId_inc_001')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_002')), findsNothing);
-      expect(find.byKey(const Key('docId_inc_003')), findsNothing);
-      expect(find.text('No matching incidents found'), findsOneWidget);
-    });
+        expect(find.byKey(const Key('docId_inc_001')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_002')), findsNothing);
+        expect(find.byKey(const Key('docId_inc_003')), findsNothing);
+        expect(find.text('No matching incidents found'), findsOneWidget);
+      },
+    );
   });
 }

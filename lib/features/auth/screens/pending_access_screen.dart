@@ -1,8 +1,11 @@
+import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:flutter/material.dart';
 
 class PendingAccessScreen extends StatelessWidget {
-  const PendingAccessScreen({super.key});
+  const PendingAccessScreen({super.key, this.authService});
+
+  final UserAuthentication? authService;
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +40,10 @@ class PendingAccessScreen extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 28),
-                const LogoutButton(navigateAfterSignOut: false),
+                LogoutButton(
+                  authService: authService,
+                  navigateAfterSignOut: false,
+                ),
               ],
             ),
           ),

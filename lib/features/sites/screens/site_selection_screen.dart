@@ -1,11 +1,14 @@
-import 'package:brixel/features/sites/models/site.dart';
+import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/navigation/screens/app_navigation_shell.dart';
+import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:flutter/material.dart';
 
 class SiteSelectionScreen extends StatelessWidget {
-  const SiteSelectionScreen({super.key});
+  const SiteSelectionScreen({super.key, this.authService});
+
+  final UserAuthentication? authService;
 
   // Temporary local data used only to verify LU 3.14 navigation.
   // A later integration task should replace this with approved assigned-site
@@ -27,7 +30,7 @@ class SiteSelectionScreen extends StatelessWidget {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (context) {
-          return AppNavigationShell(site: site);
+          return AppNavigationShell(site: site, authService: authService);
         },
       ),
     );

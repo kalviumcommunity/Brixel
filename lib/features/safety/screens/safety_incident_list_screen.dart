@@ -507,7 +507,11 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                 .where((i) => i.status == 'resolved')
                 .length;
 
-            final filtered = _filterList(incidents, _activeFilter, _searchQuery);
+            final filtered = _filterList(
+              incidents,
+              _activeFilter,
+              _searchQuery,
+            );
 
             return ListView(
               padding: const EdgeInsets.all(16),
@@ -610,11 +614,17 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                     hintStyle: textTheme.bodyMedium?.copyWith(
                       color: BrixelColors.secondaryText,
                     ),
-                    prefixIcon: const Icon(Icons.search, color: BrixelColors.secondaryText),
+                    prefixIcon: const Icon(
+                      Icons.search,
+                      color: BrixelColors.secondaryText,
+                    ),
                     suffixIcon: _searchQuery.isNotEmpty
                         ? IconButton(
                             key: const Key('clearSearchButton'),
-                            icon: const Icon(Icons.clear, color: BrixelColors.secondaryText),
+                            icon: const Icon(
+                              Icons.clear,
+                              color: BrixelColors.secondaryText,
+                            ),
                             tooltip: 'Clear search',
                             onPressed: () {
                               _searchController.clear();
@@ -626,7 +636,10 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                         : null,
                     filled: true,
                     fillColor: BrixelColors.surface,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
                       borderSide: const BorderSide(color: BrixelColors.border),
@@ -637,7 +650,10 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(10),
-                      borderSide: const BorderSide(color: BrixelColors.primary, width: 2),
+                      borderSide: const BorderSide(
+                        color: BrixelColors.primary,
+                        width: 2,
+                      ),
                     ),
                   ),
                 ),
@@ -673,7 +689,10 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                 if (filtered.isEmpty)
                   BrixelSectionCard(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 24,
+                        horizontal: 16,
+                      ),
                       child: Center(
                         child: Column(
                           children: [
@@ -683,7 +702,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                                   : Icons.check_circle_outline,
                               size: 48,
                               color: _searchQuery.isNotEmpty
-                                  ? BrixelColors.secondaryText.withValues(alpha: 0.6)
+                                  ? BrixelColors.secondaryText.withValues(
+                                      alpha: 0.6,
+                                    )
                                   : BrixelColors.success.withValues(alpha: 0.6),
                             ),
                             const SizedBox(height: 8),

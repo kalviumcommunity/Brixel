@@ -1,5 +1,6 @@
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
+import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
 import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
@@ -13,10 +14,12 @@ class AppNavigationShell extends StatefulWidget {
     super.key,
     required this.site,
     this.initialIndex = 0,
+    this.authService,
   });
 
   final Site site;
   final int initialIndex;
+  final UserAuthentication? authService;
 
   @override
   State<AppNavigationShell> createState() => _AppNavigationShellState();
@@ -56,6 +59,7 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
         description: 'Manage your Brixel session for ${widget.site.name}.',
         icon: Icons.menu,
         site: widget.site,
+        authService: widget.authService,
       ),
     ];
   }
@@ -120,12 +124,14 @@ class _ModulePlaceholderScreen extends StatelessWidget {
     required this.description,
     required this.icon,
     required this.site,
+    this.authService,
   });
 
   final String title;
   final String description;
   final IconData icon;
   final Site site;
+  final UserAuthentication? authService;
 
   @override
   Widget build(BuildContext context) {
@@ -164,7 +170,10 @@ class _ModulePlaceholderScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(description, textAlign: TextAlign.center),
                   const SizedBox(height: 16),
-                  const LogoutButton(navigateAfterSignOut: false),
+                  LogoutButton(
+                    authService: authService,
+                    navigateAfterSignOut: false,
+                  ),
                 ],
               ),
             ),

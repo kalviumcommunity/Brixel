@@ -5,6 +5,7 @@ import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/screens/pending_access_screen.dart';
 import 'package:brixel/features/auth/services/authentication_state.dart';
 import 'package:brixel/features/auth/services/firebase_auth_service.dart';
+import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:flutter/material.dart';
@@ -14,6 +15,7 @@ class AuthStateGate extends StatefulWidget {
     super.key,
     this.authenticationState,
     this.userRepository,
+    this.userAuthentication,
     this.signedOutBuilder,
     this.pendingBuilder,
     this.supervisorBuilder,
@@ -22,6 +24,7 @@ class AuthStateGate extends StatefulWidget {
 
   final AuthenticationState? authenticationState;
   final UserRepository? userRepository;
+  final UserAuthentication? userAuthentication;
 
   final WidgetBuilder? signedOutBuilder;
   final WidgetBuilder? pendingBuilder;
@@ -67,19 +70,23 @@ class _AuthStateGateState extends State<AuthStateGate> {
 
         if (uid == null) {
           return widget.signedOutBuilder?.call(context) ??
-              const LoginScreen(navigateAfterSignIn: false);
+              LoginScreen(
+                authService: widget.userAuthentication,
+                navigateAfterSignIn: false,
+              );
         }
 
         return StreamBuilder<UserModel?>(
           stream: _userRepository.watchUserProfile(uid),
           builder: (context, profileSnapshot) {
             if (profileSnapshot.hasError) {
-              return const _AuthStateMessageScreen(
+              return _AuthStateMessageScreen(
                 title: 'Unable to load your access',
                 message:
                     'Your account is signed in, but Brixel could not '
                     'load your role and site access.',
                 showLogout: true,
+                userAuthentication: widget.userAuthentication,
               );
             }
 
@@ -90,12 +97,13 @@ class _AuthStateGateState extends State<AuthStateGate> {
             final profile = profileSnapshot.data;
 
             if (profile == null) {
-              return const _AuthStateMessageScreen(
+              return _AuthStateMessageScreen(
                 title: 'Account profile unavailable',
                 message:
                     'Your authentication account exists, but no Brixel '
                     'access profile is available yet.',
                 showLogout: true,
+                userAuthentication: widget.userAuthentication,
               );
             }
 
@@ -110,23 +118,24 @@ class _AuthStateGateState extends State<AuthStateGate> {
     switch (profile.role) {
       case 'pending':
         return widget.pendingBuilder?.call(context) ??
-            const PendingAccessScreen();
+            PendingAccessScreen(authService: widget.userAuthentication);
 
       case 'supervisor':
         return widget.supervisorBuilder?.call(context) ??
-            const SiteSelectionScreen();
+            SiteSelectionScreen(authService: widget.userAuthentication);
 
       case 'manager':
         return widget.managerBuilder?.call(context) ??
-            const SiteSelectionScreen();
+            SiteSelectionScreen(authService: widget.userAuthentication);
 
       default:
-        return const _AuthStateMessageScreen(
+        return _AuthStateMessageScreen(
           title: 'Access unavailable',
           message:
               'Your account has an unsupported access role. '
               'Please contact an administrator.',
           showLogout: true,
+          userAuthentication: widget.userAuthentication,
         );
     }
   }
@@ -146,11 +155,13 @@ class _AuthStateMessageScreen extends StatelessWidget {
     required this.title,
     required this.message,
     this.showLogout = false,
+    this.userAuthentication,
   });
 
   final String title;
   final String message;
   final bool showLogout;
+  final UserAuthentication? userAuthentication;
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +185,10 @@ class _AuthStateMessageScreen extends StatelessWidget {
                 Text(message, textAlign: TextAlign.center),
                 if (showLogout) ...[
                   const SizedBox(height: 24),
-                  const LogoutButton(navigateAfterSignOut: false),
+                  LogoutButton(
+                    authService: userAuthentication,
+                    navigateAfterSignOut: false,
+                  ),
                 ],
               ],
             ),
