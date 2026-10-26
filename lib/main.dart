@@ -8,7 +8,7 @@ import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:brixel/features/auth/screens/auth_state_gate.dart';
+import 'package:brixel/features/splash/screens/splash_screen.dart';
 
 import 'firebase_options.dart';
 
@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Brixel',
       theme: buildBrixelTheme(),
-      home: home ?? const AuthStateGate(),
+      home: home ?? const SplashScreen(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/signup': (context) => const SignUpScreen(),
