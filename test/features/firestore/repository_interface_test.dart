@@ -26,6 +26,9 @@ class FakeSiteRepository implements SiteRepository {
   final List<SiteModel> sites;
 
   @override
+  Stream<List<SiteModel>> watchAllSites() => Stream.value(sites);
+
+  @override
   Stream<List<SiteModel>> watchAssignedSites(List<String> siteIds) {
     final assignedSites = sites
         .where((site) => siteIds.contains(site.id))

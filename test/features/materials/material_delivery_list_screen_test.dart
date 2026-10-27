@@ -12,7 +12,9 @@ void main() {
     return MaterialApp(
       theme: buildBrixelTheme(),
       home: MaterialDeliveryListScreen(
-        initialDeliveries: deliveries,
+        initialDeliveries:
+            deliveries ??
+            MaterialDeliveryListScreen.sampleDeliveriesForPreview(testSiteId),
         siteId: testSiteId,
         siteName: testSiteName,
       ),
@@ -134,7 +136,7 @@ void main() {
     );
 
     testWidgets(
-      'Task 4: Adding an item inside setState() immediately updates the list on screen',
+      'does not expose non-persistent local delivery creation controls',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(800, 1400);
         tester.view.devicePixelRatio = 1.0;
@@ -143,25 +145,14 @@ void main() {
         await tester.pumpWidget(createTestWidget());
         await tester.pumpAndSettle();
 
-        // Initial count: 25
         expect(find.text('Dynamic Builder Feed (25 items)'), findsOneWidget);
-        expect(find.text('DEL-2001'), findsNothing);
-
-        // Tap Add Delivery button in AppBar
-        await tester.tap(find.byKey(const Key('addDeliveryButton')));
-        await tester.pumpAndSettle();
-
-        // Verify new item was inserted at the top and rendered
-        expect(find.text('DEL-2001'), findsOneWidget);
-        expect(find.text('Structural Steel Rebars 20mm'), findsOneWidget);
-
-        // Verify counter incremented to 26
-        expect(find.text('Dynamic Builder Feed (26 items)'), findsOneWidget);
+        expect(find.byKey(const Key('addDeliveryButton')), findsNothing);
+        expect(find.byKey(const Key('addDeliveryFab')), findsNothing);
       },
     );
 
     testWidgets(
-      'Task 4: Removing an item inside setState() immediately removes row from screen',
+      'does not expose non-persistent local delivery deletion controls',
       (WidgetTester tester) async {
         tester.view.physicalSize = const Size(800, 1400);
         tester.view.devicePixelRatio = 1.0;
@@ -197,14 +188,36 @@ void main() {
         expect(find.text('Permanent Structural Beams'), findsOneWidget);
         expect(find.text('Dynamic Builder Feed (2 items)'), findsOneWidget);
 
-        // Tap delete on DEL-DELETE-ME
-        await tester.tap(find.byKey(const Key('deleteDelivery_DEL-DELETE-ME')));
+        expect(
+          find.byKey(const Key('deleteDelivery_DEL-DELETE-ME')),
+          findsNothing,
+        );
+        expect(find.text('Temporary Wooden Battens'), findsOneWidget);
+        expect(find.text('Permanent Structural Beams'), findsOneWidget);
+        expect(find.text('Dynamic Builder Feed (2 items)'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'production default does not show fabricated delivery records',
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildBrixelTheme(),
+            home: const MaterialDeliveryListScreen(
+              siteId: testSiteId,
+              siteName: testSiteName,
+            ),
+          ),
+        );
         await tester.pumpAndSettle();
 
-        // Confirm removed item is gone from the screen and count is 1
-        expect(find.text('Temporary Wooden Battens'), findsNothing);
-        expect(find.text('Permanent Structural Beams'), findsOneWidget);
-        expect(find.text('Dynamic Builder Feed (1 items)'), findsOneWidget);
+        expect(find.text('Dynamic Builder Feed (0 items)'), findsOneWidget);
+        expect(find.text('No deliveries recorded yet'), findsOneWidget);
+        expect(
+          find.text('Delivery records are not available for this site yet.'),
+          findsOneWidget,
+        );
       },
     );
 
@@ -216,7 +229,7 @@ void main() {
 
       expect(find.text('No deliveries recorded yet'), findsOneWidget);
       expect(
-        find.text('Tap the + button to add a material delivery.'),
+        find.text('Delivery records are not available for this site yet.'),
         findsOneWidget,
       );
     });

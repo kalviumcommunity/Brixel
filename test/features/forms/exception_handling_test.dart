@@ -86,11 +86,11 @@ void main() {
         await tester.pump();
 
         expect(
-          find.text('Attendance recorded locally for Ramesh Kumar'),
+          find.text('Attendance saving is not configured for this app.'),
           findsOneWidget,
         );
         final successSnackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-        expect(successSnackBar.backgroundColor, BrixelColors.success);
+        expect(successSnackBar.backgroundColor, BrixelColors.danger);
       },
     );
 
@@ -171,11 +171,11 @@ void main() {
         await tester.pump();
 
         expect(
-          find.text('Material usage recorded locally for OPC Cement'),
+          find.text('Material usage saving is not configured for this app.'),
           findsOneWidget,
         );
         final successSnackBar = tester.widget<SnackBar>(find.byType(SnackBar));
-        expect(successSnackBar.backgroundColor, BrixelColors.success);
+        expect(successSnackBar.backgroundColor, BrixelColors.danger);
       },
     );
 

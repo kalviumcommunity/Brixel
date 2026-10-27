@@ -30,6 +30,22 @@ service cloud.firestore {
       return hasRole('manager');
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasSiteAccess(siteId) {
+      return isAuthenticated() && (
+        isManager() ||
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          getUserData().role == 'supervisor' &&
+          getUserData().assignedSiteIds is list &&
+          siteId in getUserData().assignedSiteIds
+        )
+      );
+    }
+
     // Supervisor or Manager role authorization check
     function isSupervisorOrManager() {
       return isAuthenticated() && (
@@ -65,71 +81,67 @@ service cloud.firestore {
     }
 
     // 2. Sites Collection (/sites/{siteId})
-    // - Any authenticated worker or supervisor can view construction sites
-    // - Creating, updating site details, or archiving sites requires supervisor or manager role
+    // - Supervisors can access assigned sites; managers can access all sites
     match /sites/{siteId} {
-      allow read: if isAuthenticated();
-      allow create, update, delete: if isSupervisorOrManager();
+      allow read: if hasSiteAccess(siteId);
+      allow create, update, delete: if isSupervisorOrManager() && hasSiteAccess(siteId);
     }
 
     // 3. Attendance Logs (/attendance/{attendanceId})
-    // - Authenticated workers and staff can read attendance records
-    // - Workers/supervisors can create records where recordedBy matches their auth UID
-    // - Updates allowed by author or manager, but audit fields (siteId, recordedBy, date, createdAt) are immutable
-    // - Deletions restricted to original author or project manager
+    // - Access is limited to the assigned site for supervisors; managers can access all sites
     match /attendance/{attendanceId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() && request.resource.data.recordedBy == request.auth.uid;
-      allow update: if isAuthenticated() && (
+      allow read: if hasSiteAccess(resource.data.siteId);
+      allow create: if hasSiteAccess(request.resource.data.siteId) &&
+        request.resource.data.recordedBy == request.auth.uid;
+      allow update: if hasSiteAccess(resource.data.siteId) && (
         (resource.data.recordedBy == request.auth.uid || isManager()) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['siteId', 'recordedBy', 'date', 'createdAt'])
       );
-      allow delete: if isAuthenticated() && (
+      allow delete: if hasSiteAccess(resource.data.siteId) && (
         resource.data.recordedBy == request.auth.uid || isManager()
       );
     }
 
     // 4. Materials Inventory (/materials/{materialId})
-    // - Authenticated workers can view material stock levels
-    // - Creating material types and adjusting stock inventory requires supervisor or manager role
-    // - siteId is immutable on update to prevent cross-site inventory corruption
+    // - Access is limited to the assigned site for supervisors; managers can access all sites
     match /materials/{materialId} {
-      allow read: if isAuthenticated();
-      allow create: if isSupervisorOrManager();
+      allow read: if hasSiteAccess(resource.data.siteId);
+      allow create: if isSupervisorOrManager() && hasSiteAccess(request.resource.data.siteId);
       allow update: if isSupervisorOrManager() &&
+        hasSiteAccess(resource.data.siteId) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['siteId']);
-      allow delete: if isManager();
+      allow delete: if isManager() && hasSiteAccess(resource.data.siteId);
     }
 
     // 5. Material Transactions Audit Trail (/material_transactions/{txId})
-    // - Authenticated users can view transaction logs
-    // - Creating a transaction requires author identity integrity (recordedBy == auth.uid) and positive quantity
+    // - Access is limited to the assigned site for supervisors; managers can access all sites
+    // - Creating a transaction requires author identity integrity and positive quantity
     // - Transactions are financial/inventory audit records: immutable for regular users
     // - Managers may perform corrections, but core audit keys (materialId, siteId, recordedBy, timestamp) are immutable
     match /material_transactions/{txId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() &&
+      allow read: if hasSiteAccess(resource.data.siteId);
+      allow create: if hasSiteAccess(request.resource.data.siteId) &&
         request.resource.data.recordedBy == request.auth.uid &&
         request.resource.data.quantity > 0;
-      allow update: if isManager() &&
+      allow update: if isManager() && hasSiteAccess(resource.data.siteId) &&
         !request.resource.data.diff(resource.data).affectedKeys().hasAny(['materialId', 'siteId', 'recordedBy', 'timestamp']);
-      allow delete: if isManager();
+      allow delete: if isManager() && hasSiteAccess(resource.data.siteId);
     }
 
     // 6. Safety Incidents (/incidents/{incidentId})
-    // - Authenticated staff can read safety incidents for site hazard awareness
+    // - Access is limited to the assigned site for supervisors; managers can access all sites
     // - Reporting an incident requires author verification (reportedBy == auth.uid) and initial status 'reported'
     // - Audit fields (siteId, reportedBy, createdAt) are strictly immutable for all users
     // - Original reporter can only edit incident notes/description and cannot alter status or resolution fields
     // - Only supervisors and managers can transition incident status (e.g. reported -> acknowledged -> resolved)
     // - Deleting an incident requires manager role or reporter prior to acknowledgment
     match /incidents/{incidentId} {
-      allow read: if isAuthenticated();
-      allow create: if isAuthenticated() &&
+      allow read: if hasSiteAccess(resource.data.siteId);
+      allow create: if hasSiteAccess(request.resource.data.siteId) &&
         request.resource.data.reportedBy == request.auth.uid &&
         request.resource.data.status == 'reported' &&
         (!('resolvedBy' in request.resource.data) || request.resource.data.resolvedBy == null);
-      allow update: if isAuthenticated() && (
+      allow update: if hasSiteAccess(resource.data.siteId) && (
         // Case A: Original reporter updating incident notes/description (cannot change status or resolution)
         (
           resource.data.reportedBy == request.auth.uid &&
@@ -144,7 +156,7 @@ service cloud.firestore {
           !request.resource.data.diff(resource.data).affectedKeys().hasAny(['siteId', 'reportedBy', 'createdAt'])
         )
       );
-      allow delete: if isAuthenticated() && (
+      allow delete: if hasSiteAccess(resource.data.siteId) && (
         isManager() || (
           resource.data.reportedBy == request.auth.uid && resource.data.status == 'reported'
         )

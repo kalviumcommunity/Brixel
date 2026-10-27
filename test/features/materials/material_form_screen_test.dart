@@ -103,7 +103,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Material usage recorded locally for Cement'),
+      find.text('Material usage saving is not configured for this app.'),
       findsOneWidget,
     );
   });
@@ -123,7 +123,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Material usage recorded locally for Cement'),
+      find.text('Material usage saving is not configured for this app.'),
       findsOneWidget,
     );
   });
