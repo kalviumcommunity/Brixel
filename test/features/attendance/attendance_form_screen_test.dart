@@ -120,7 +120,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('Attendance recorded locally for Mason Crew'),
+      find.text('Attendance saving is not configured for this app.'),
       findsOneWidget,
     );
   });

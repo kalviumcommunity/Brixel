@@ -16,8 +16,8 @@ class MaterialDeliveryListScreen extends StatefulWidget {
   final String siteId;
   final String siteName;
 
-  /// Default dataset containing 25 realistic delivery records for smooth scrolling.
-  static List<MaterialDelivery> defaultDeliveries(String siteId) {
+  /// Sample data for explicit previews; production screens start empty.
+  static List<MaterialDelivery> sampleDeliveriesForPreview(String siteId) {
     return [
       MaterialDelivery(
         id: 'DEL-1001',
@@ -279,16 +279,13 @@ class MaterialDeliveryListScreen extends StatefulWidget {
 
 class _MaterialDeliveryListScreenState
     extends State<MaterialDeliveryListScreen> {
-  // Task 1: Dart list driving the dynamic ListView.builder
   late List<MaterialDelivery> _deliveries;
-  int _counter = 2000;
 
   @override
   void initState() {
     super.initState();
     _deliveries = List<MaterialDelivery>.from(
-      widget.initialDeliveries ??
-          MaterialDeliveryListScreen.defaultDeliveries(widget.siteId),
+      widget.initialDeliveries ?? const [],
     );
   }
 
@@ -299,47 +296,6 @@ class _MaterialDeliveryListScreenState
       _deliveries.where((d) => d.status.toLowerCase() == 'in transit').length;
   int get _pendingCount =>
       _deliveries.where((d) => d.status.toLowerCase() == 'pending').length;
-
-  // Task 4: Add an item inside setState() and update screen
-  void _addSampleDelivery() {
-    setState(() {
-      _counter++;
-      final newDelivery = MaterialDelivery(
-        id: 'DEL-$_counter',
-        siteId: widget.siteId,
-        materialName: 'Structural Steel Rebars 20mm',
-        quantity: 15.0,
-        unit: 'metric_tons',
-        supplier: 'JSW Steel Infra',
-        status: 'In Transit',
-        deliveryDate: DateTime.now(),
-      );
-      _deliveries.insert(0, newDelivery);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Added new delivery DEL-$_counter to feed'),
-        backgroundColor: BrixelColors.success,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  // Task 4: Remove an item inside setState() and update screen
-  void _removeDelivery(String id) {
-    setState(() {
-      _deliveries.removeWhere((d) => d.id == id);
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Delivery $id removed'),
-        backgroundColor: BrixelColors.secondaryText,
-        duration: const Duration(seconds: 2),
-      ),
-    );
-  }
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
@@ -359,25 +315,7 @@ class _MaterialDeliveryListScreenState
 
     return Scaffold(
       backgroundColor: BrixelColors.background,
-      appBar: AppBar(
-        title: Text('${widget.siteName} Deliveries'),
-        actions: [
-          IconButton(
-            key: const Key('addDeliveryButton'),
-            icon: const Icon(Icons.add_circle_outline),
-            tooltip: 'Add Delivery Batch',
-            onPressed: _addSampleDelivery,
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        key: const Key('addDeliveryFab'),
-        onPressed: _addSampleDelivery,
-        backgroundColor: BrixelColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Delivery'),
-      ),
+      appBar: AppBar(title: Text('${widget.siteName} Deliveries')),
       body: SafeArea(
         child: Column(
           children: [
@@ -470,7 +408,7 @@ class _MaterialDeliveryListScreenState
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Tap the + button to add a material delivery.',
+                            'Delivery records are not available for this site yet.',
                             style: textTheme.bodyMedium,
                           ),
                         ],
@@ -625,20 +563,6 @@ class _MaterialDeliveryListScreenState
                                           ),
                                         ),
                                         const SizedBox(width: 4),
-                                        IconButton(
-                                          key: Key(
-                                            'deleteDelivery_${delivery.id}',
-                                          ),
-                                          icon: const Icon(
-                                            Icons.delete_outline,
-                                            size: 18,
-                                            color: BrixelColors.secondaryText,
-                                          ),
-                                          tooltip: 'Remove delivery',
-                                          onPressed: () =>
-                                              _removeDelivery(delivery.id),
-                                          visualDensity: VisualDensity.compact,
-                                        ),
                                       ],
                                     ),
                                   ],

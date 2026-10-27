@@ -38,6 +38,19 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
       return;
     }
 
+    final onSubmit = widget.onSubmit;
+    if (onSubmit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Material usage saving is not configured for this app.',
+          ),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -51,9 +64,7 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
         'notes': _notesController.text.trim(),
       };
 
-      if (widget.onSubmit != null) {
-        await widget.onSubmit!(payload);
-      }
+      await onSubmit(payload);
 
       if (!mounted) return;
 
@@ -61,7 +72,7 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Material usage recorded locally for $materialName'),
+          content: Text('Material usage recorded for $materialName'),
           backgroundColor: BrixelColors.success,
         ),
       );

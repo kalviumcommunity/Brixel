@@ -2,7 +2,7 @@ import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
 import 'package:brixel/features/navigation/screens/app_navigation_shell.dart';
-import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
+import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_dashboard_screen.dart';
 import 'package:flutter/material.dart';
@@ -98,7 +98,7 @@ void main() {
           find.byType(BottomNavigationBar),
         );
         expect(navBar.currentIndex, equals(3));
-        expect(find.byType(SafetyIncidentFormScreen), findsOneWidget);
+        expect(find.byType(SafetyIncidentListScreen), findsOneWidget);
 
         // Switch to More tab (index 4)
         await tester.tap(findNavTab('More'));
@@ -153,7 +153,7 @@ void main() {
         await tester.pumpAndSettle();
 
         // Verify Safety screen is displayed
-        expect(find.byType(SafetyIncidentFormScreen), findsOneWidget);
+        expect(find.byType(SafetyIncidentListScreen), findsOneWidget);
 
         // 3. Switch back to Attendance tab
         await tester.tap(findNavTab('Attendance'));

@@ -3,7 +3,7 @@ import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
 import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
-import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
+import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_dashboard_screen.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
@@ -50,10 +50,7 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
       SiteDashboardScreen(site: widget.site),
       AttendanceFormScreen(siteName: widget.site.name),
       MaterialFormScreen(siteName: widget.site.name),
-      SafetyIncidentFormScreen(
-        siteId: widget.site.id,
-        siteName: widget.site.name,
-      ),
+      SafetyIncidentListScreen(site: widget.site),
       _ModulePlaceholderScreen(
         title: 'More',
         description: 'Manage your Brixel session for ${widget.site.name}.',

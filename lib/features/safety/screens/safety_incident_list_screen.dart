@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:brixel/core/theme/brixel_theme.dart';
+import 'package:brixel/features/auth/services/firebase_auth_service.dart';
 import 'package:brixel/features/safety/models/incident_model.dart';
 import 'package:brixel/features/safety/repositories/firestore_safety_incident_read_repository.dart';
 import 'package:brixel/features/safety/repositories/firestore_safety_incident_write_repository.dart';
@@ -22,6 +23,7 @@ class SafetyIncidentListScreen extends StatefulWidget {
     this.readRepository,
     this.incidentStream,
     this.initialIncidents,
+    this.currentUserId,
   });
 
   final Site site;
@@ -29,6 +31,7 @@ class SafetyIncidentListScreen extends StatefulWidget {
   final SafetyIncidentReadRepository? readRepository;
   final Stream<List<IncidentModel>>? incidentStream;
   final List<IncidentModel>? initialIncidents;
+  final String? currentUserId;
 
   @override
   State<SafetyIncidentListScreen> createState() =>
@@ -36,8 +39,8 @@ class SafetyIncidentListScreen extends StatefulWidget {
 }
 
 class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
-  late final SafetyIncidentWriteRepository _writeRepository;
-  late final SafetyIncidentReadRepository _readRepository;
+  late final SafetyIncidentWriteRepository _writeRepository =
+      widget.repository ?? FirestoreSafetyIncidentWriteRepository();
   late final StreamController<List<IncidentModel>> _streamController;
   late final Stream<List<IncidentModel>> _incidentsStream;
   StreamSubscription<List<IncidentModel>>? _liveSubscription;
@@ -48,112 +51,39 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
-  static SafetyIncidentWriteRepository _resolveDefaultWriteRepository() {
-    try {
-      return FirestoreSafetyIncidentWriteRepository();
-    } catch (_) {
-      return _FallbackSafetyIncidentWriteRepository();
-    }
-  }
-
-  static SafetyIncidentReadRepository _resolveDefaultReadRepository() {
-    try {
-      return FirestoreSafetyIncidentReadRepository();
-    } catch (_) {
-      return _FallbackSafetyIncidentReadRepository();
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    _writeRepository = widget.repository ?? _resolveDefaultWriteRepository();
-    _readRepository = widget.readRepository ?? _resolveDefaultReadRepository();
 
     if (widget.incidentStream != null) {
       _incidentsStream = widget.incidentStream!;
       return;
     }
 
-    // Prepare initial data set
     if (widget.initialIncidents != null) {
       _cachedIncidents = List.from(widget.initialIncidents!);
-    } else {
-      final now = DateTime.now();
-      _cachedIncidents = [
-        IncidentModel(
-          id: 'inc_${widget.site.id}_001',
-          siteId: widget.site.id,
-          incidentType: 'equipment_failure',
-          severity: 'high',
-          description:
-              'Hydraulic oil leakage detected on Crane #2 hydraulic arm.',
-          status: 'reported',
-          reportedBy: 'usr_sup_101',
-          createdAt: now.subtract(const Duration(hours: 3)),
-        ),
-        IncidentModel(
-          id: 'inc_${widget.site.id}_002',
-          siteId: widget.site.id,
-          incidentType: 'hazard',
-          severity: 'medium',
-          description: 'Uncovered electrical trench near worker entry gate 3.',
-          status: 'reported',
-          reportedBy: 'usr_sup_102',
-          createdAt: now.subtract(const Duration(hours: 5)),
-        ),
-        IncidentModel(
-          id: 'inc_${widget.site.id}_003',
-          siteId: widget.site.id,
-          incidentType: 'injury',
-          severity: 'critical',
-          description:
-              'Worker sustained wrist laceration during rebar cutting.',
-          status: 'acknowledged',
-          reportedBy: 'usr_sup_101',
-          createdAt: now.subtract(const Duration(hours: 24)),
-        ),
-        IncidentModel(
-          id: 'inc_${widget.site.id}_004',
-          siteId: widget.site.id,
-          incidentType: 'fall',
-          severity: 'low',
-          description:
-              'Slip on wet scaffolding platform; safety harness arrested fall.',
-          status: 'resolved',
-          reportedBy: 'usr_sup_103',
-          resolvedBy: 'usr_mgr_201',
-          resolvedAt: now.subtract(const Duration(hours: 12)),
-          createdAt: now.subtract(const Duration(days: 2)),
-        ),
-      ];
     }
 
-    if (widget.incidentStream != null) {
-      _incidentsStream = widget.incidentStream!;
-    } else {
-      _streamController = StreamController<List<IncidentModel>>.broadcast();
-      _incidentsStream = _streamController.stream;
+    _streamController = StreamController<List<IncidentModel>>();
+    _incidentsStream = _streamController.stream;
 
-      // Connect to Firestore real-time snapshots() stream if not custom-seeded
-      if (widget.initialIncidents == null) {
-        try {
-          _liveSubscription = _readRepository
-              .watchIncidentsForSite(widget.site.id)
-              .listen(
-                (liveDocs) {
-                  _cachedIncidents = List.from(liveDocs);
-                  _emitCachedUpdate();
-                },
-                onError: (error) {
-                  debugPrint(
-                    'Real-time snapshot stream error (offline/fallback): $error',
-                  );
-                },
-              );
-        } catch (e) {
-          debugPrint('Could not bind real-time snapshots listener: $e');
-        }
+    if (widget.initialIncidents == null) {
+      try {
+        final readRepository =
+            widget.readRepository ?? FirestoreSafetyIncidentReadRepository();
+        _liveSubscription = readRepository
+            .watchIncidentsForSite(widget.site.id)
+            .listen(
+              (liveDocs) {
+                _cachedIncidents = List.from(liveDocs);
+                _emitCachedUpdate();
+              },
+              onError: (error) {
+                _streamController.addError(error);
+              },
+            );
+      } catch (error, stackTrace) {
+        _streamController.addError(error, stackTrace);
       }
     }
   }
@@ -177,6 +107,22 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   // --- REAL-TIME DATA ACTIONS (Adds, Updates, Deletes) ---
 
   Future<void> _updateStatus(IncidentModel incident, String newStatus) async {
+    final resolvedBy = newStatus == 'resolved'
+        ? (widget.currentUserId?.trim().isNotEmpty == true
+              ? widget.currentUserId!.trim()
+              : FirebaseAuthService().currentUser?.uid)
+        : null;
+    if (newStatus == 'resolved' &&
+        (resolvedBy == null || resolvedBy.trim().isEmpty)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not verify your account. Please sign in again.'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+      return;
+    }
+
     final incidentId = incident.id;
     setState(() {
       _updatingIds.add(incidentId);
@@ -186,7 +132,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       await _writeRepository.updateIncidentStatus(
         incidentId: incidentId,
         status: newStatus,
-        resolvedBy: newStatus == 'resolved' ? 'usr_sup_101' : null,
+        resolvedBy: resolvedBy,
       );
 
       // Mutate local cache and emit to StreamBuilder
@@ -195,7 +141,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
         final existing = _cachedIncidents[index];
         _cachedIncidents[index] = existing.copyWith(
           status: newStatus,
-          resolvedBy: newStatus == 'resolved' ? 'usr_sup_101' : null,
+          resolvedBy: resolvedBy,
           resolvedAt: newStatus == 'resolved' ? DateTime.now() : null,
         );
         _emitCachedUpdate();
@@ -313,49 +259,6 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
     }
   }
 
-  Future<void> _addQuickIncident() async {
-    final newId =
-        'inc_${widget.site.id}_${DateTime.now().millisecondsSinceEpoch % 10000}';
-    final newIncident = IncidentModel(
-      id: newId,
-      siteId: widget.site.id,
-      incidentType: 'hazard',
-      severity: 'high',
-      description: 'Quick report: scaffolding clamp slipped during load check.',
-      status: 'reported',
-      reportedBy: 'usr_sup_101',
-      createdAt: DateTime.now(),
-    );
-
-    try {
-      await _writeRepository.addIncident(
-        activeSiteId: widget.site.id,
-        incident: newIncident,
-      );
-
-      _cachedIncidents.insert(0, newIncident);
-      _emitCachedUpdate();
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Live added new incident $newId'),
-          backgroundColor: BrixelColors.success,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not add the safety incident. Please try again.'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-    }
-  }
-
   Color _severityColor(String severity) {
     switch (severity.toLowerCase()) {
       case 'critical':
@@ -426,12 +329,6 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           ],
         ),
         actions: [
-          IconButton(
-            key: const Key('quickAddIncidentButton'),
-            icon: const Icon(Icons.flash_on_outlined),
-            tooltip: 'Live Add Incident',
-            onPressed: _addQuickIncident,
-          ),
           IconButton(
             key: const Key('addIncidentButton'),
             icon: const Icon(Icons.add_circle_outline),
@@ -964,34 +861,47 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           const SizedBox(height: 8),
 
           // Reporting metadata
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(
-                Icons.person_outline,
-                size: 14,
-                color: BrixelColors.secondaryText,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                'Reported by ${incident.reportedBy}',
-                style: textTheme.bodySmall?.copyWith(
-                  color: BrixelColors.secondaryText,
-                ),
+              Row(
+                children: [
+                  const Icon(
+                    Icons.person_outline,
+                    size: 14,
+                    color: BrixelColors.secondaryText,
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'Reported by ${incident.reportedBy}',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: BrixelColors.secondaryText,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               if (incident.resolvedBy != null) ...[
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.verified_outlined,
-                  size: 14,
-                  color: BrixelColors.success,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  'Resolved by ${incident.resolvedBy}',
-                  style: textTheme.bodySmall?.copyWith(
-                    color: BrixelColors.success,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.verified_outlined,
+                      size: 14,
+                      color: BrixelColors.success,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Resolved by ${incident.resolvedBy}',
+                        style: textTheme.bodySmall?.copyWith(
+                          color: BrixelColors.success,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ],
@@ -1081,43 +991,4 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       ),
     );
   }
-}
-
-class _FallbackSafetyIncidentWriteRepository
-    implements SafetyIncidentWriteRepository {
-  @override
-  String createIncidentId() =>
-      'incident_${DateTime.now().microsecondsSinceEpoch}';
-
-  @override
-  Future<String> addIncident({
-    required String activeSiteId,
-    required IncidentModel incident,
-  }) async => incident.id;
-
-  @override
-  Future<void> updateIncidentStatus({
-    required String incidentId,
-    required String status,
-    String? resolvedBy,
-  }) async {}
-
-  @override
-  Future<void> updateIncidentFields({
-    required String incidentId,
-    required Map<String, dynamic> fields,
-  }) async {}
-
-  @override
-  Future<void> deleteIncident({required String incidentId}) async {}
-}
-
-class _FallbackSafetyIncidentReadRepository
-    implements SafetyIncidentReadRepository {
-  @override
-  Future<List<IncidentModel>> fetchIncidentsForSite(String siteId) async => [];
-
-  @override
-  Stream<List<IncidentModel>> watchIncidentsForSite(String siteId) =>
-      const Stream.empty();
 }

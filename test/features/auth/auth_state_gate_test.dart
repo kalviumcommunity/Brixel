@@ -7,6 +7,8 @@ import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/services/authentication_state.dart';
 import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/navigation/screens/app_navigation_shell.dart';
+import 'package:brixel/features/sites/models/site_model.dart';
+import 'package:brixel/features/sites/repositories/site_repository.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:brixel/main.dart';
 import 'package:flutter/material.dart';
@@ -36,6 +38,32 @@ class FakeUserRepository implements UserRepository {
     }
 
     return Stream.value(profiles[uid]);
+  }
+}
+
+class FakeSiteRepository implements SiteRepository {
+  @override
+  Stream<List<SiteModel>> watchAllSites() {
+    return watchAssignedSites(const []);
+  }
+
+  @override
+  Stream<List<SiteModel>> watchAssignedSites(List<String> siteIds) {
+    return Stream.value([
+      SiteModel(
+        id: 'site-jaipur-01',
+        name: 'Jaipur Residential Project',
+        location: 'Jaipur, Rajasthan',
+        status: 'active',
+        expectedHeadcount: 10,
+        createdAt: DateTime(2026, 10, 16),
+      ),
+    ]);
+  }
+
+  @override
+  Stream<List<SiteModel>> watchSitesForSupervisor(String supervisorId) {
+    return watchAssignedSites(const []);
   }
 }
 
@@ -282,6 +310,7 @@ void main() {
         return AuthStateGate(
           authenticationState: auth,
           userRepository: repository,
+          siteRepository: FakeSiteRepository(),
           userAuthentication: auth,
           signedOutBuilder: (_) =>
               LoginScreen(authService: auth, navigateAfterSignIn: false),

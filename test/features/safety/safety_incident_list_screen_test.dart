@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 class MockSafetyIncidentRepository implements SafetyIncidentWriteRepository {
   final List<String> updatedIncidentIds = [];
   final List<String> updatedStatuses = [];
+  final List<String?> resolvedByUserIds = [];
   final List<String> deletedIncidentIds = [];
   Completer<void>? deleteCompleter;
   int deleteCallCount = 0;
@@ -38,6 +39,7 @@ class MockSafetyIncidentRepository implements SafetyIncidentWriteRepository {
     }
     updatedIncidentIds.add(incidentId);
     updatedStatuses.add(status);
+    resolvedByUserIds.add(resolvedBy);
   }
 
   @override
@@ -113,6 +115,7 @@ void main() {
       home: SafetyIncidentListScreen(
         site: testSite,
         repository: repository,
+        currentUserId: 'authenticated-user-42',
         initialIncidents: incidents ?? testIncidents,
       ),
     );
@@ -141,6 +144,30 @@ void main() {
     // Initial metrics
     expect(find.text('Total Incidents'), findsOneWidget);
     expect(find.text('3'), findsOneWidget); // total
+  });
+
+  testWidgets('empty Firestore result does not display placeholder incidents', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildBrixelTheme(),
+        home: SafetyIncidentListScreen(
+          site: testSite,
+          repository: MockSafetyIncidentRepository(),
+          incidentStream: Stream.value(const <IncidentModel>[]),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Total Incidents'), findsOneWidget);
+    expect(
+      find.text('Hydraulic oil leakage detected on Crane #2 hydraulic arm.'),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('quickAddIncidentButton')), findsNothing);
+    expect(find.byKey(const Key('addIncidentButton')), findsOneWidget);
   });
 
   testWidgets('shows evidence only for incidents with a photo URL', (
@@ -232,6 +259,7 @@ void main() {
 
       expect(repository.updatedIncidentIds, ['inc_002']);
       expect(repository.updatedStatuses, ['resolved']);
+      expect(repository.resolvedByUserIds, ['authenticated-user-42']);
 
       // Badge updated
       final badge2 = find.byKey(const Key('statusBadge_inc_002'));

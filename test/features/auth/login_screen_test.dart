@@ -267,7 +267,10 @@ void main() {
 
         expect(find.byType(LoginScreen), findsNothing);
 
-        expect(find.text('Select a site'), findsOneWidget);
+        expect(
+          find.text('No sites are currently assigned to your account.'),
+          findsOneWidget,
+        );
       },
     );
 

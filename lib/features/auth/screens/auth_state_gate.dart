@@ -7,6 +7,8 @@ import 'package:brixel/features/auth/services/authentication_state.dart';
 import 'package:brixel/features/auth/services/firebase_auth_service.dart';
 import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
+import 'package:brixel/features/sites/repositories/firestore_site_repository.dart';
+import 'package:brixel/features/sites/repositories/site_repository.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +17,7 @@ class AuthStateGate extends StatefulWidget {
     super.key,
     this.authenticationState,
     this.userRepository,
+    this.siteRepository,
     this.userAuthentication,
     this.signedOutBuilder,
     this.pendingBuilder,
@@ -24,6 +27,7 @@ class AuthStateGate extends StatefulWidget {
 
   final AuthenticationState? authenticationState;
   final UserRepository? userRepository;
+  final SiteRepository? siteRepository;
   final UserAuthentication? userAuthentication;
 
   final WidgetBuilder? signedOutBuilder;
@@ -122,11 +126,23 @@ class _AuthStateGateState extends State<AuthStateGate> {
 
       case 'supervisor':
         return widget.supervisorBuilder?.call(context) ??
-            SiteSelectionScreen(authService: widget.userAuthentication);
+            SiteSelectionScreen(
+              authService: widget.userAuthentication,
+              userRole: profile.role,
+              assignedSiteIds: profile.assignedSiteIds,
+              siteRepository:
+                  widget.siteRepository ?? FirestoreSiteRepository(),
+            );
 
       case 'manager':
         return widget.managerBuilder?.call(context) ??
-            SiteSelectionScreen(authService: widget.userAuthentication);
+            SiteSelectionScreen(
+              authService: widget.userAuthentication,
+              userRole: profile.role,
+              assignedSiteIds: profile.assignedSiteIds,
+              siteRepository:
+                  widget.siteRepository ?? FirestoreSiteRepository(),
+            );
 
       default:
         return _AuthStateMessageScreen(

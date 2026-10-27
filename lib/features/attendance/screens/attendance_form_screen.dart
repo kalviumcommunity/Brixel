@@ -39,6 +39,17 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
       return;
     }
 
+    final onSubmit = widget.onSubmit;
+    if (onSubmit == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Attendance saving is not configured for this app.'),
+          backgroundColor: BrixelColors.danger,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isLoading = true;
     });
@@ -52,9 +63,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
         'hoursWorked': hoursWorked,
       };
 
-      if (widget.onSubmit != null) {
-        await widget.onSubmit!(payload);
-      }
+      await onSubmit(payload);
 
       if (!mounted) return;
 
@@ -62,7 +71,7 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Attendance recorded locally for $workerName'),
+          content: Text('Attendance recorded for $workerName'),
           backgroundColor: BrixelColors.success,
         ),
       );
