@@ -1,7 +1,8 @@
+import 'package:brixel/features/auth/services/firebase_auth_service.dart';
+
 import 'dart:async';
 
 import 'package:brixel/core/theme/brixel_theme.dart';
-import 'package:brixel/features/auth/services/firebase_auth_service.dart';
 import 'package:brixel/features/safety/models/incident_model.dart';
 import 'package:brixel/features/safety/repositories/firestore_safety_incident_read_repository.dart';
 import 'package:brixel/features/safety/repositories/firestore_safety_incident_write_repository.dart';
@@ -27,11 +28,11 @@ class SafetyIncidentListScreen extends StatefulWidget {
   });
 
   final Site site;
+  final String? currentUserId;
   final SafetyIncidentWriteRepository? repository;
   final SafetyIncidentReadRepository? readRepository;
   final Stream<List<IncidentModel>>? incidentStream;
   final List<IncidentModel>? initialIncidents;
-  final String? currentUserId;
 
   @override
   State<SafetyIncidentListScreen> createState() =>
@@ -41,6 +42,8 @@ class SafetyIncidentListScreen extends StatefulWidget {
 class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   late final SafetyIncidentWriteRepository _writeRepository =
       widget.repository ?? FirestoreSafetyIncidentWriteRepository();
+  late final SafetyIncidentReadRepository _readRepository =
+      widget.readRepository ?? FirestoreSafetyIncidentReadRepository();
   late final StreamController<List<IncidentModel>> _streamController;
   late final Stream<List<IncidentModel>> _incidentsStream;
   StreamSubscription<List<IncidentModel>>? _liveSubscription;
@@ -60,32 +63,38 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       return;
     }
 
-    if (widget.initialIncidents != null) {
-      _cachedIncidents = List.from(widget.initialIncidents!);
-    }
-
     _streamController = StreamController<List<IncidentModel>>();
     _incidentsStream = _streamController.stream;
-
-    if (widget.initialIncidents == null) {
-      try {
-        final readRepository =
-            widget.readRepository ?? FirestoreSafetyIncidentReadRepository();
-        _liveSubscription = readRepository
-            .watchIncidentsForSite(widget.site.id)
-            .listen(
-              (liveDocs) {
-                _cachedIncidents = List.from(liveDocs);
-                _emitCachedUpdate();
-              },
-              onError: (error) {
-                _streamController.addError(error);
-              },
-            );
-      } catch (error, stackTrace) {
-        _streamController.addError(error, stackTrace);
-      }
+    if (widget.initialIncidents != null) {
+      _cachedIncidents = List.from(widget.initialIncidents!);
+      _emitCachedUpdate();
+    } else {
+      _watchLiveIncidents();
     }
+  }
+
+  void _watchLiveIncidents() {
+    try {
+      _liveSubscription = _readRepository
+          .watchIncidentsForSite(widget.site.id)
+          .listen(
+            (records) {
+              _cachedIncidents = List.from(records);
+              _emitCachedUpdate();
+            },
+            onError: (Object error, StackTrace stack) {
+              _streamController.addError(error, stack);
+            },
+          );
+    } catch (error, stack) {
+      _streamController.addError(error, stack);
+    }
+  }
+
+  Future<void> _retryLoad() async {
+    await _liveSubscription?.cancel();
+    if (!mounted) return;
+    _watchLiveIncidents();
   }
 
   @override
@@ -107,32 +116,22 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
   // --- REAL-TIME DATA ACTIONS (Adds, Updates, Deletes) ---
 
   Future<void> _updateStatus(IncidentModel incident, String newStatus) async {
-    final resolvedBy = newStatus == 'resolved'
-        ? (widget.currentUserId?.trim().isNotEmpty == true
-              ? widget.currentUserId!.trim()
-              : FirebaseAuthService().currentUser?.uid)
-        : null;
-    if (newStatus == 'resolved' &&
-        (resolvedBy == null || resolvedBy.trim().isEmpty)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Could not verify your account. Please sign in again.'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-      return;
-    }
-
     final incidentId = incident.id;
     setState(() {
       _updatingIds.add(incidentId);
     });
 
     try {
+      final resolver = newStatus == 'resolved'
+          ? (widget.currentUserId ?? FirebaseAuthService().currentUser?.uid)
+          : null;
+      if (newStatus == 'resolved' && (resolver == null || resolver.isEmpty)) {
+        throw StateError('Account unavailable.');
+      }
       await _writeRepository.updateIncidentStatus(
         incidentId: incidentId,
         status: newStatus,
-        resolvedBy: resolvedBy,
+        resolvedBy: resolver,
       );
 
       // Mutate local cache and emit to StreamBuilder
@@ -141,7 +140,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
         final existing = _cachedIncidents[index];
         _cachedIncidents[index] = existing.copyWith(
           status: newStatus,
-          resolvedBy: resolvedBy,
+          resolvedBy: resolver,
           resolvedAt: newStatus == 'resolved' ? DateTime.now() : null,
         );
         _emitCachedUpdate();
@@ -350,9 +349,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
       // Task 1: Read collection with snapshots() inside StreamBuilder
       body: SafeArea(
         child: StreamBuilder<List<IncidentModel>>(
-          initialData: widget.incidentStream != null
-              ? null
-              : List.unmodifiable(_cachedIncidents),
+          initialData: widget.initialIncidents,
           stream: _incidentsStream,
           builder: (context, snapshot) {
             // Loading state while waiting for initial stream emission
@@ -381,10 +378,16 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '${snapshot.error}',
+                        'Please check your connection and try again.',
                         style: textTheme.bodySmall,
                         textAlign: TextAlign.center,
                       ),
+                      if (widget.incidentStream == null &&
+                          widget.initialIncidents == null)
+                        TextButton(
+                          onPressed: _retryLoad,
+                          child: const Text('Retry'),
+                        ),
                     ],
                   ),
                 ),
@@ -436,7 +439,7 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Live Firestore Sync Active (snapshots)',
+                        'Site safety reports',
                         key: const Key('liveSyncIndicator'),
                         style: textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
@@ -699,8 +702,9 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header Row: Severity & Type badges + Status chip + Delete button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               Wrap(
                 spacing: 6,
@@ -861,47 +865,34 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
           const SizedBox(height: 8),
 
           // Reporting metadata
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Wrap(
             children: [
-              Row(
-                children: [
-                  const Icon(
-                    Icons.person_outline,
-                    size: 14,
-                    color: BrixelColors.secondaryText,
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                    child: Text(
-                      'Reported by ${incident.reportedBy}',
-                      style: textTheme.bodySmall?.copyWith(
-                        color: BrixelColors.secondaryText,
-                      ),
-                    ),
-                  ),
-                ],
+              const Icon(
+                Icons.person_outline,
+                size: 14,
+                color: BrixelColors.secondaryText,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                'Reported by ${incident.reportedBy}',
+                style: textTheme.bodySmall?.copyWith(
+                  color: BrixelColors.secondaryText,
+                ),
               ),
               if (incident.resolvedBy != null) ...[
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.verified_outlined,
-                      size: 14,
-                      color: BrixelColors.success,
-                    ),
-                    const SizedBox(width: 4),
-                    Expanded(
-                      child: Text(
-                        'Resolved by ${incident.resolvedBy}',
-                        style: textTheme.bodySmall?.copyWith(
-                          color: BrixelColors.success,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
+                const SizedBox(width: 8),
+                const Icon(
+                  Icons.verified_outlined,
+                  size: 14,
+                  color: BrixelColors.success,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Resolved by ${incident.resolvedBy}',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: BrixelColors.success,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ],
             ],
@@ -923,8 +914,10 @@ class _SafetyIncidentListScreenState extends State<SafetyIncidentListScreen> {
               ),
             )
           else
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.end,
               children: [
                 if (incident.status == 'reported') ...[
                   OutlinedButton.icon(

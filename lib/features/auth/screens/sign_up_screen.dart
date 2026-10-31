@@ -3,6 +3,7 @@ import 'package:brixel/features/auth/services/user_registration.dart';
 import 'package:brixel/features/auth/services/user_registration_service.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({
@@ -50,7 +51,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_isSubmitting || !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -80,13 +81,41 @@ class _SignUpScreenState extends State<SignUpScreen> {
       if (Navigator.canPop(context)) {
         Navigator.pop(context);
       }
+    } on FirebaseAuthException catch (error) {
+      if (!mounted) return;
+      final message = switch (error.code) {
+        'email-already-in-use' => 'An account already exists for this email. Log in instead; contact your administrator if your access profile is unavailable.',
+        'operation-not-allowed' => 'Account creation is not enabled. Contact your administrator to enable email and password sign-in.',
+        'network-request-failed' => 'Could not reach the sign-in service. Check your connection and try again.',
+        'weak-password' =>
+          'Choose a stronger password with at least 6 characters.',
+        'invalid-email' => 'Please enter a valid email address.',
+        'too-many-requests' => 'Too many attempts. Please try again later.',
+        _ => 'Could not create your sign-in account. Please try again or contact your administrator.',
+      };
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(message)));
+    } on RegistrationProfileUnavailable {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Your sign-in account was created, but your access profile could not be confirmed. Contact your administrator; do not register again.',
+          ),
+        ),
+      );
+      if (Navigator.canPop(context)) Navigator.pop(context);
     } catch (error) {
       if (!mounted) {
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Unable to create account: $error')),
+        const SnackBar(
+          content: Text(
+            'Could not finish creating your account. Please try again or contact your administrator.',
+          ),
+        ),
       );
     } finally {
       if (mounted) {

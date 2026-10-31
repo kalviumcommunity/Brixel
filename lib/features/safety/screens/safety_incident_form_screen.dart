@@ -22,9 +22,11 @@ class SafetyIncidentFormScreen extends StatefulWidget {
     this.repository,
     this.evidenceStorage,
     this.pickImage,
+    this.popOnSuccess = true,
   });
 
   final String siteId;
+  final bool popOnSuccess;
   final String? siteName;
   final String? reportedBy;
   final SafetyIncidentWriteRepository? repository;
@@ -77,6 +79,11 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
       final bytes = await image.readAsBytes();
       if (!mounted) return;
 
+      if (bytes.isEmpty || bytes.length > 10 * 1024 * 1024) {
+        _showError('Choose a non-empty image smaller than 10 MB.');
+        return;
+      }
+      _contentTypeFor(image);
       setState(() {
         _selectedImage = image;
         _selectedImageBytes = bytes;
@@ -107,8 +114,11 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
         return 'image/heic';
       case 'heif':
         return 'image/heif';
-      default:
+      case 'jpg':
+      case 'jpeg':
         return 'image/jpeg';
+      default:
+        throw ArgumentError('Unsupported image type.');
     }
   }
 
@@ -139,6 +149,10 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
         return 'equipment_failure';
       case 'Injury':
         return 'injury';
+      case 'Electrical':
+        return 'electrical';
+      case 'Fire':
+        return 'fire';
       default:
         return 'hazard';
     }
@@ -203,7 +217,7 @@ class _SafetyIncidentFormScreenState extends State<SafetyIncidentFormScreen> {
           backgroundColor: BrixelColors.success,
         ),
       );
-      if (Navigator.of(context).canPop()) {
+      if (widget.popOnSuccess && Navigator.of(context).canPop()) {
         Navigator.of(context).pop();
       }
     } catch (_) {

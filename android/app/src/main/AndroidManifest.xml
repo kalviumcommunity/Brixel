@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Firebase Auth, Firestore and evidence uploads require network access
+         in every build variant, including release. -->
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:label="brixel"
         android:name="${applicationName}"

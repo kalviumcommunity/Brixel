@@ -46,8 +46,9 @@ class UserRegistrationService implements UserRegistration {
           })
           .timeout(const Duration(seconds: 4));
     } catch (_) {
-      // If Firestore database write times out or fails (e.g. offline or uninitialized),
-      // the Firebase Auth user was still successfully created and can log in.
+      // Keep the signed-in account behind the gate's missing-profile state.
+      // Do not claim approval registration succeeded when persistence failed.
+      throw const RegistrationProfileUnavailable();
     }
   }
 }

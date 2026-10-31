@@ -6,7 +6,9 @@ void main() {
   testWidgets('material fields use numeric and multiline input settings', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: MaterialFormScreen(onSubmit: (_) async {})),
+    );
 
     final quantityField = tester.widget<EditableText>(
       find.descendant(
@@ -34,7 +36,9 @@ void main() {
   testWidgets('material form renders expected fields and accepts notes', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: MaterialFormScreen(onSubmit: (_) async {})),
+    );
 
     expect(find.text('Material Usage Report'), findsOneWidget);
     expect(find.text('Material Name'), findsOneWidget);
@@ -70,7 +74,9 @@ void main() {
   });
 
   testWidgets('material name and quantity are required', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: MaterialFormScreen(onSubmit: (_) async {})),
+    );
 
     await tester.tap(find.text('Submit Material Usage'));
     await tester.pump();
@@ -80,7 +86,9 @@ void main() {
   });
 
   testWidgets('quantity must be numeric and greater than zero', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: MaterialFormScreen(onSubmit: (_) async {})),
+    );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Material Name'),
       'Cement',
@@ -102,14 +110,13 @@ void main() {
     await tester.tap(find.text('Submit Material Usage'));
     await tester.pump();
 
-    expect(
-      find.text('Material usage saving is not configured for this app.'),
-      findsOneWidget,
-    );
+    expect(find.text('Material usage saved for Cement'), findsOneWidget);
   });
 
   testWidgets('material notes are optional', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: MaterialFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: MaterialFormScreen(onSubmit: (_) async {})),
+    );
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Material Name'),
       'Cement',
@@ -122,9 +129,6 @@ void main() {
     await tester.tap(find.text('Submit Material Usage'));
     await tester.pump();
 
-    expect(
-      find.text('Material usage saving is not configured for this app.'),
-      findsOneWidget,
-    );
+    expect(find.text('Material usage saved for Cement'), findsOneWidget);
   });
 }

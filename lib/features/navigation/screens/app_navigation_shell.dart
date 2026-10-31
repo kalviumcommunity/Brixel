@@ -1,9 +1,11 @@
+import 'package:brixel/features/reporting/repositories/site_report_repository.dart';
+import 'package:brixel/features/auth/models/user_model.dart';
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/attendance/screens/attendance_form_screen.dart';
 import 'package:brixel/features/auth/services/user_authentication.dart';
 import 'package:brixel/features/auth/widgets/logout_button.dart';
 import 'package:brixel/features/materials/screens/material_form_screen.dart';
-import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
+import 'package:brixel/features/safety/screens/safety_incident_form_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/features/sites/screens/site_dashboard_screen.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
@@ -15,9 +17,11 @@ class AppNavigationShell extends StatefulWidget {
     required this.site,
     this.initialIndex = 0,
     this.authService,
+    this.profile,
   });
 
   final Site site;
+  final UserModel? profile;
   final int initialIndex;
   final UserAuthentication? authService;
 
@@ -47,14 +51,24 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
 
   void _buildScreens() {
     _screens = [
-      SiteDashboardScreen(site: widget.site),
-      AttendanceFormScreen(siteName: widget.site.name),
-      MaterialFormScreen(siteName: widget.site.name),
-      SafetyIncidentListScreen(site: widget.site),
-      _ModulePlaceholderScreen(
-        title: 'More',
-        description: 'Manage your Brixel session for ${widget.site.name}.',
-        icon: Icons.menu,
+      SiteDashboardScreen(
+        site: widget.site,
+        displayName: widget.profile?.displayName,
+        reports: widget.profile == null ? null : SiteReportRepository(),
+      ),
+      AttendanceFormScreen(siteName: widget.site.name, siteId: widget.site.id),
+      MaterialFormScreen(siteName: widget.site.name, siteId: widget.site.id),
+      SafetyIncidentFormScreen(
+        popOnSuccess: false,
+        siteId: widget.site.id,
+        siteName: widget.site.name,
+      ),
+      _ProfileScreen(
+        title: 'Profile',
+        description: widget.profile == null
+            ? 'Site reporting'
+            : '${widget.profile!.displayName} • ${widget.profile!.role}',
+        icon: Icons.person_outline,
         site: widget.site,
         authService: widget.authService,
       ),
@@ -70,9 +84,11 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // Task 4: Preserve each tab's state & scroll position using IndexedStack
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      // Task 1, 2 & 3: BottomNavigationBar switching screens and tracking selected tab
+      body: IndexedStack(
+        key: ValueKey(widget.site.id),
+        index: _selectedIndex,
+        children: _screens,
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _selectDestination,
@@ -115,8 +131,8 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
   }
 }
 
-class _ModulePlaceholderScreen extends StatelessWidget {
-  const _ModulePlaceholderScreen({
+class _ProfileScreen extends StatelessWidget {
+  const _ProfileScreen({
     required this.title,
     required this.description,
     required this.icon,
@@ -170,6 +186,7 @@ class _ModulePlaceholderScreen extends StatelessWidget {
                   LogoutButton(
                     authService: authService,
                     navigateAfterSignOut: false,
+                    confirmBeforeSignOut: true,
                   ),
                 ],
               ),

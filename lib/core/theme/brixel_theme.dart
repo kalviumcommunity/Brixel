@@ -5,7 +5,7 @@ class BrixelColors {
   static const Color surface = Color(0xFFFCFAF7);
   static const Color surfaceAlt = Color(0xFFF2E9DE);
   static const Color border = Color(0xFFE7DCCB);
-  static const Color primary = Color(0xFFE77A2C);
+  static const Color primary = Color(0xFFD65A14);
   static const Color primarySoft = Color(0xFFFFEDE0);
   static const Color primaryText = Color(0xFF2C201A);
   static const Color secondaryText = Color(0xFF715F54);
@@ -50,6 +50,25 @@ ThemeData buildBrixelTheme() {
   );
 
   return base.copyWith(
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: BrixelColors.surface,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: BrixelColors.border),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: BrixelColors.border),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        minimumSize: const Size(48, 48),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    ),
     appBarTheme: const AppBarTheme(
       backgroundColor: BrixelColors.background,
       foregroundColor: BrixelColors.primaryText,

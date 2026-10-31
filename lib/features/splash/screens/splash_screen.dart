@@ -67,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: const Icon(
-                    Icons.construction_rounded,
+                    Icons.engineering,
                     key: Key('splashLogo'),
                     size: 48,
                     color: Colors.white,
@@ -85,7 +85,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Construction site reporting, kept current.',
+                  'Build Smarter, Together',
                   textAlign: TextAlign.center,
                   style: textTheme.bodyMedium?.copyWith(
                     color: BrixelColors.secondaryText,

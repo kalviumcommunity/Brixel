@@ -78,6 +78,7 @@ void main() {
     return MaterialApp(
       theme: buildBrixelTheme(),
       home: SafetyIncidentListScreen(
+        currentUserId: 'test-supervisor',
         site: testSite,
         repository: _MockSafetyRepository(),
         initialIncidents: incidents ?? testIncidents,

@@ -1,154 +1,203 @@
-import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
-import 'package:brixel/features/materials/screens/material_delivery_list_screen.dart';
+import 'package:brixel/core/theme/brixel_theme.dart';
+import 'package:brixel/features/reporting/repositories/site_report_repository.dart';
+import 'package:brixel/features/reporting/screens/site_report_list_screen.dart';
 import 'package:brixel/features/safety/screens/safety_incident_list_screen.dart';
 import 'package:brixel/features/sites/models/site.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:flutter/material.dart';
 
 class SiteDashboardScreen extends StatelessWidget {
-  const SiteDashboardScreen({super.key, required this.site});
-
-  final Site site;
-
-  @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    return Scaffold(
-      appBar: AppBar(title: Text(site.name)),
-      body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            Text('Site overview', style: textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            BrixelSectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    site.name,
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      const Icon(Icons.location_on_outlined),
-                      const SizedBox(width: 8),
-                      Expanded(child: Text(site.location)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Site ID: ${site.id}', style: textTheme.bodySmall),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text('Reporting modules', style: textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            _ReportingModuleCard(
-              icon: Icons.groups_outlined,
-              title: 'Attendance',
-              description: 'Record and review aggregate workforce counts.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        AttendanceTrackerScreen(siteName: site.name),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _ReportingModuleCard(
-              icon: Icons.inventory_2_outlined,
-              title: 'Material usage',
-              description: 'Record material quantities consumed at this site.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => MaterialDeliveryListScreen(
-                      siteId: site.id,
-                      siteName: site.name,
-                    ),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 12),
-            _ReportingModuleCard(
-              icon: Icons.health_and_safety_outlined,
-              title: 'Safety reports',
-              description: 'Track, review, and resolve safety incidents.',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SafetyIncidentListScreen(site: site),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ReportingModuleCard extends StatelessWidget {
-  const _ReportingModuleCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    this.onTap,
+  const SiteDashboardScreen({
+    super.key,
+    required this.site,
+    this.displayName,
+    this.reports,
   });
+  final Site site;
+  final String? displayName;
+  final SiteReportRepository? reports;
 
-  final IconData icon;
-  final String title;
-  final String description;
-  final VoidCallback? onTap;
+  void _open(BuildContext context, Widget screen) {
+    Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => screen));
+  }
 
   @override
-  Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
-
-    final content = BrixelSectionCard(
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.all(20),
         children: [
-          Icon(icon, size: 28),
-          const SizedBox(width: 14),
-          Expanded(
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  'Good morning,\n${displayName?.trim().isNotEmpty == true ? displayName : 'Welcome'}!',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+              ),
+              const CircleAvatar(
+                backgroundColor: BrixelColors.primarySoft,
+                child: Icon(Icons.engineering, color: BrixelColors.primary),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              const Icon(
+                Icons.location_on,
+                size: 18,
+                color: BrixelColors.primary,
+              ),
+              const SizedBox(width: 6),
+              Expanded(child: Text(site.name)),
+              const Icon(Icons.keyboard_arrow_down, size: 18),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Text('Site overview', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final width = (constraints.maxWidth - 12) / 2;
+              return Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  SizedBox(
+                    width: width,
+                    child: _DashboardCard(
+                      title: 'Attendance',
+                      icon: Icons.groups_outlined,
+                      records: reports?.watch(site.id, 'attendance'),
+                      describe: (rows) {
+                        final today = rows
+                            .where(
+                              (r) =>
+                                  r['date'] ==
+                                  SiteReportRepository.dateKey(DateTime.now()),
+                            )
+                            .toList();
+                        return today.isEmpty
+                            ? 'No report today'
+                            : '${today.where((r) => r['status'] == 'present').length} / ${today.length} present';
+                      },
+                      onTap: () => _open(
+                        context,
+                        SiteReportListScreen(site: site, materials: false),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: _DashboardCard(
+                      title: 'Materials',
+                      icon: Icons.inventory_2_outlined,
+                      records: reports?.watch(site.id, 'material_transactions'),
+                      describe: (rows) =>
+                          '${rows.where((r) => r['type'] == 'used').length} usage reports',
+                      onTap: () => _open(
+                        context,
+                        SiteReportListScreen(site: site, materials: true),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: _DashboardCard(
+                      title: 'Safety',
+                      icon: Icons.warning_amber_rounded,
+                      records: reports?.watch(site.id, 'incidents'),
+                      describe: (rows) =>
+                          '${rows.where((r) => r['status'] != 'resolved').length} open incidents',
+                      onTap: () =>
+                          _open(context, SafetyIncidentListScreen(site: site)),
+                    ),
+                  ),
+                  SizedBox(
+                    width: width,
+                    child: _DashboardCard(
+                      title: 'Reports',
+                      icon: Icons.description_outlined,
+                      onTap: () =>
+                          _open(context, SafetyIncidentListScreen(site: site)),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+          BrixelSectionCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  title,
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+                  'Active site',
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
+                const SizedBox(height: 8),
+                Text(site.name),
                 const SizedBox(height: 4),
-                Text(description),
+                Text(site.location),
+                const SizedBox(height: 12),
+                const Text('Keep everyone in sync with current site reports.'),
               ],
             ),
           ),
-          if (onTap != null)
-            const Icon(Icons.chevron_right, color: Colors.grey),
         ],
       ),
-    );
+    ),
+  );
+}
 
-    if (onTap != null) {
-      return InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: content,
-      );
-    }
-
-    return content;
-  }
+class _DashboardCard extends StatelessWidget {
+  const _DashboardCard({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+    this.records,
+    this.describe,
+  });
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Stream<List<Map<String, dynamic>>>? records;
+  final String Function(List<Map<String, dynamic>>)? describe;
+  @override
+  Widget build(BuildContext context) => InkWell(
+    onTap: onTap,
+    borderRadius: BorderRadius.circular(16),
+    child: BrixelSectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: BrixelColors.primarySoft,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: BrixelColors.primary),
+          ),
+          const SizedBox(height: 12),
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          if (records == null)
+            const Text('View reports')
+          else
+            StreamBuilder<List<Map<String, dynamic>>>(
+              stream: records,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return const Text('Unavailable');
+                if (!snapshot.hasData) return const Text('Loading…');
+                return Text(describe!(snapshot.data!));
+              },
+            ),
+        ],
+      ),
+    ),
+  );
 }

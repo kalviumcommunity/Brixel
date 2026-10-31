@@ -10,11 +10,13 @@ class LogoutButton extends StatefulWidget {
     this.authService,
     this.destinationBuilder,
     this.navigateAfterSignOut = false,
+    this.confirmBeforeSignOut = false,
   });
 
   final UserAuthentication? authService;
   final WidgetBuilder? destinationBuilder;
   final bool navigateAfterSignOut;
+  final bool confirmBeforeSignOut;
 
   @override
   State<LogoutButton> createState() => _LogoutButtonState();
@@ -27,6 +29,27 @@ class _LogoutButtonState extends State<LogoutButton> {
       widget.authService ?? FirebaseAuthService();
 
   Future<void> _signOut() async {
+    if (_isSigningOut) return;
+    if (widget.confirmBeforeSignOut) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Log out?'),
+          content: const Text('You can sign in again to continue reporting.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Log out'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted || confirmed != true) return;
+    }
     setState(() {
       _isSigningOut = true;
     });

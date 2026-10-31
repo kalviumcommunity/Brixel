@@ -1,3 +1,6 @@
+import 'package:brixel/features/sites/models/site_model.dart';
+import 'package:brixel/features/sites/repositories/site_repository.dart';
+
 import 'dart:async';
 
 import 'package:brixel/features/auth/models/user_model.dart';
@@ -30,9 +33,11 @@ class FakeUserRepository implements UserRepository {
 
   final Map<String, UserModel?> profiles;
   final Object? error;
+  int watchCount = 0;
 
   @override
   Stream<UserModel?> watchUserProfile(String uid) {
+    watchCount++;
     if (error != null) {
       return Stream<UserModel?>.error(error!);
     }
@@ -132,6 +137,59 @@ void main() {
     );
   }
 
+  testWidgets('rebuilds keep the active profile subscription', (tester) async {
+    final auth = StreamController<String?>.broadcast();
+    addTearDown(auth.close);
+    final repository = FakeUserRepository(
+      profiles: {'user-1': buildProfile(role: 'pending')},
+    );
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: StatefulBuilder(
+          builder: (context, setState) {
+            rebuild = setState;
+            return AuthStateGate(
+              authenticationState: FakeAuthenticationState(auth.stream),
+              userRepository: repository,
+              pendingBuilder: (_) => const Text('PENDING'),
+            );
+          },
+        ),
+      ),
+    );
+    auth.add('user-1');
+    await tester.pumpAndSettle();
+    expect(repository.watchCount, 1);
+    rebuild(() {});
+    await tester.pumpAndSettle();
+    expect(repository.watchCount, 1);
+    expect(find.text('PENDING'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('switching accounts never retains the previous role', (
+    tester,
+  ) async {
+    final auth = StreamController<String?>(sync: true);
+    addTearDown(auth.close);
+    await tester.pumpWidget(
+      buildApp(
+        authStream: auth.stream,
+        profiles: {'user-1': buildProfile(role: 'manager')},
+      ),
+    );
+    auth.add('user-1');
+    await tester.pumpAndSettle();
+    expect(find.text('MANAGER DESTINATION'), findsOneWidget);
+    auth.add('missing-profile-user');
+    await tester.pump();
+    expect(find.text('MANAGER DESTINATION'), findsNothing);
+    await tester.pumpAndSettle();
+    expect(find.text('Account profile unavailable'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('routes signed-out user to signed-out destination', (
     tester,
   ) async {
@@ -163,7 +221,10 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           authStream: Stream.value('user-1'),
-          profiles: {'user-1': buildProfile(role: 'supervisor')},
+          profiles: {
+            'user-1': buildProfile(role: 'supervisor')
+                .copyWith(assignedSiteIds: ['test-site']),
+          },
         ),
       );
 
@@ -184,7 +245,10 @@ void main() {
       await tester.pumpWidget(
         buildApp(
           authStream: controller.stream,
-          profiles: {'user-1': buildProfile(role: 'supervisor')},
+          profiles: {
+            'user-1': buildProfile(role: 'supervisor')
+                .copyWith(assignedSiteIds: ['test-site']),
+          },
         ),
       );
 
@@ -207,6 +271,36 @@ void main() {
       unawaited(controller.close());
     }
   });
+
+  testWidgets(
+    'manager without assignments can select sites through manager repository',
+    (tester) async {
+      final sites = TestSiteRepository();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AuthStateGate(
+            authenticationState: FakeAuthenticationState(
+              Stream.value('user-1'),
+            ),
+            userRepository: FakeUserRepository(
+              profiles: {
+                'user-1': buildProfile(role: 'manager')
+                    .copyWith(assignedSiteIds: []),
+              },
+            ),
+            siteRepository: sites,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(sites.allSitesCalls, 1);
+      expect(find.text('Test site'), findsOneWidget);
+      expect(
+        find.text('No sites assigned. Contact your manager.'),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('routes manager to manager destination', (tester) async {
     await tester.pumpWidget(
@@ -292,6 +386,44 @@ void main() {
   });
 
   testWidgets(
+    'logout removes pushed protected routes from the session navigator',
+    (tester) async {
+      final auth = StreamController<String?>();
+      addTearDown(auth.close);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AuthStateGate(
+            authenticationState: FakeAuthenticationState(auth.stream),
+            userRepository: FakeUserRepository(
+              profiles: {'user-1': buildProfile(role: 'supervisor')},
+            ),
+            siteRepository: TestSiteRepository(),
+            signedOutBuilder: (_) => const Scaffold(body: Text('SIGNED OUT')),
+          ),
+        ),
+      );
+      auth.add('user-1');
+      await tester.pumpAndSettle();
+      final context = tester.element(find.byType(SiteSelectionScreen));
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('PROTECTED REPORT')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('PROTECTED REPORT'), findsOneWidget);
+      auth.add(null);
+      await tester.pumpAndSettle();
+      expect(find.text('PROTECTED REPORT'), findsNothing);
+      expect(find.text('SIGNED OUT'), findsOneWidget);
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
+      expect(find.text('PROTECTED REPORT'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  testWidgets(
     'protected named route follows auth state through login and logout',
     (tester) async {
       final auth = FakeSessionAuthentication(
@@ -303,7 +435,10 @@ void main() {
       });
 
       final repository = FakeUserRepository(
-        profiles: {'user-1': buildProfile(role: 'supervisor')},
+        profiles: {
+          'user-1': buildProfile(role: 'supervisor')
+              .copyWith(assignedSiteIds: ['test-site']),
+        },
       );
 
       Widget buildGate(BuildContext context) {
@@ -312,6 +447,11 @@ void main() {
           userRepository: repository,
           siteRepository: FakeSiteRepository(),
           userAuthentication: auth,
+          siteRepository: TestSiteRepository(),
+          supervisorBuilder: (_) => SiteSelectionScreen(
+            authService: auth,
+            sites: TestSiteRepository().watchAssignedSites(['test-site']),
+          ),
           signedOutBuilder: (_) =>
               LoginScreen(authService: auth, navigateAfterSignIn: false),
         );
@@ -358,6 +498,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key('logoutButton')));
       await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Log out'));
+      await tester.pumpAndSettle();
 
       expect(auth.signOutCallCount, 1);
       expect(auth.userId, isNull);
@@ -373,4 +515,28 @@ void main() {
       expect(find.byType(AppNavigationShell), findsNothing);
     },
   );
+}
+
+class TestSiteRepository implements SiteRepository {
+  int allSitesCalls = 0;
+  @override
+  Stream<List<SiteModel>> watchAllSites() {
+    allSitesCalls++;
+    return watchAssignedSites([]);
+  }
+
+  @override
+  Stream<List<SiteModel>> watchAssignedSites(List<String> ids) => Stream.value([
+    SiteModel(
+      id: 'test-site',
+      name: 'Test site',
+      location: 'Jaipur',
+      status: 'active',
+      expectedHeadcount: 0,
+      createdAt: DateTime(2026),
+    ),
+  ]);
+  @override
+  Stream<List<SiteModel>> watchSitesForSupervisor(String id) =>
+      watchAssignedSites([]);
 }

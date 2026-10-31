@@ -1,14 +1,22 @@
+import 'package:brixel/features/reporting/screens/site_report_list_screen.dart';
+import 'package:brixel/features/sites/models/site.dart';
+import 'package:brixel/features/reporting/repositories/site_report_repository.dart';
 import 'package:brixel/core/theme/brixel_theme.dart';
-import 'package:brixel/features/attendance/screens/attendance_tracker_screen.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
 import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
 
 class AttendanceFormScreen extends StatefulWidget {
-  const AttendanceFormScreen({super.key, this.siteName, this.onSubmit});
+  const AttendanceFormScreen({
+    super.key,
+    this.siteName,
+    this.siteId,
+    this.onSubmit,
+  });
 
   final String? siteName;
+  final String? siteId;
   final Future<void> Function(Map<String, dynamic> data)? onSubmit;
 
   @override
@@ -39,17 +47,6 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
       return;
     }
 
-    final onSubmit = widget.onSubmit;
-    if (onSubmit == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Attendance saving is not configured for this app.'),
-          backgroundColor: BrixelColors.danger,
-        ),
-      );
-      return;
-    }
-
     setState(() {
       _isLoading = true;
     });
@@ -63,7 +60,14 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
         'hoursWorked': hoursWorked,
       };
 
-      await onSubmit(payload);
+      if (widget.onSubmit != null) {
+        await widget.onSubmit!(payload);
+      } else {
+        await SiteReportRepository().saveAttendance(
+          widget.siteId ?? '',
+          payload,
+        );
+      }
 
       if (!mounted) return;
 
@@ -71,12 +75,10 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Attendance recorded for $workerName'),
+          content: Text('Attendance saved for $workerName'),
           backgroundColor: BrixelColors.success,
         ),
       );
-
-      debugPrint('Attendance form submitted: $payload');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -106,10 +108,17 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
             icon: const Icon(Icons.people_alt_outlined),
             tooltip: 'Crew Roster Tracker',
             onPressed: () {
+              if (widget.siteId == null) return;
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      AttendanceTrackerScreen(siteName: widget.siteName),
+                MaterialPageRoute<void>(
+                  builder: (_) => SiteReportListScreen(
+                    site: Site(
+                      id: widget.siteId!,
+                      name: widget.siteName ?? '',
+                      location: '',
+                    ),
+                    materials: false,
+                  ),
                 ),
               );
             },
@@ -219,13 +228,18 @@ class _AttendanceFormScreenState extends State<AttendanceFormScreen> {
                         }
 
                         final hours = double.tryParse(raw);
-                        if (hours == null) {
+                        if (hours == null || !hours.isFinite) {
                           return 'Please enter a valid number.';
                         }
-                        if (hours <= 0 || hours > 24) {
+                        if (hours < 0 ||
+                            hours > 24 ||
+                            (_selectedStatus == 'Present' && hours == 0)) {
                           return 'Hours worked must be greater than 0 and at most 24.';
                         }
 
+                        if (_selectedStatus == 'Absent' && hours != 0) {
+                          return 'Absent workers must have zero hours.';
+                        }
                         return null;
                       },
                     ),

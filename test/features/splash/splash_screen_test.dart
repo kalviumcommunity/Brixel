@@ -34,10 +34,7 @@ void main() {
 
     expect(find.text('Brixel'), findsOneWidget);
 
-    expect(
-      find.text('Construction site reporting, kept current.'),
-      findsOneWidget,
-    );
+    expect(find.text('Build Smarter, Together'), findsOneWidget);
 
     expect(find.byKey(const Key('splashProgress')), findsOneWidget);
 

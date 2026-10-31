@@ -18,15 +18,17 @@ class FirebaseSafetyEvidenceStorage implements SafetyEvidenceStorage {
     final normalizedIncidentId = incidentId.trim();
     final normalizedFileName = fileName.trim();
 
-    if (normalizedSiteId.isEmpty) {
+    if (normalizedSiteId.isEmpty || normalizedSiteId.contains('/')) {
       throw ArgumentError('Site ID cannot be empty.');
     }
 
-    if (normalizedIncidentId.isEmpty) {
+    if (normalizedIncidentId.isEmpty || normalizedIncidentId.contains('/')) {
       throw ArgumentError('Incident ID cannot be empty.');
     }
 
-    if (normalizedFileName.isEmpty) {
+    if (normalizedFileName.isEmpty ||
+        normalizedFileName.contains('/') ||
+        normalizedFileName.contains('\\')) {
       throw ArgumentError('File name cannot be empty.');
     }
 
@@ -55,6 +57,19 @@ class FirebaseSafetyEvidenceStorage implements SafetyEvidenceStorage {
       throw ArgumentError('Content type cannot be empty.');
     }
 
+    if (!const [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/gif',
+      'image/heic',
+      'image/heif',
+    ].contains(normalizedContentType)) {
+      throw ArgumentError('Evidence must be an image.');
+    }
+    if (bytes.length > 10 * 1024 * 1024) {
+      throw ArgumentError('Evidence must be at most 10 MB.');
+    }
     if (bytes.isEmpty) {
       throw ArgumentError('Evidence file cannot be empty.');
     }

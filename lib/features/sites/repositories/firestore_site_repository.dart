@@ -9,9 +9,9 @@ class FirestoreSiteRepository implements SiteRepository {
   final FirestoreDatabaseService _databaseService;
 
   @override
-  Stream<List<SiteModel>> watchAllSites() {
-    return _databaseService.streamAllSites();
-  }
+  Stream<List<SiteModel>> watchAllSites() => _databaseService.sitesCollection
+      .snapshots()
+      .map((snapshot) => snapshot.docs.map(SiteModel.fromDocument).toList());
 
   @override
   Stream<List<SiteModel>> watchAssignedSites(List<String> siteIds) {
