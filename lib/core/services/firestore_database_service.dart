@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../../features/auth/models/user_model.dart';
@@ -32,6 +34,15 @@ class FirestoreDatabaseService {
 
   CollectionReference<Map<String, dynamic>> get incidentsCollection =>
       _firestore.collection('incidents');
+
+  Future<void> addAttendanceReport(Map<String, dynamic> payload) async {
+    await attendanceCollection.add(payload);
+  }
+
+  Future<String> addMaterialTransaction(Map<String, dynamic> payload) async {
+    final document = await transactionsCollection.add(payload);
+    return document.id;
+  }
 
   // --- SEEDING SAMPLE DATA WITH CONSISTENT STRUCTURE ---
 
@@ -138,14 +149,48 @@ class FirestoreDatabaseService {
 
   /// Stream assigned sites for a supervisor
   Stream<List<SiteModel>> streamAssignedSites(List<String> siteIds) {
-    if (siteIds.isEmpty) return Stream.value([]);
-    return sitesCollection
-        .where(FieldPath.documentId, whereIn: siteIds)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => SiteModel.fromDocument(doc)).toList(),
+    final ids = siteIds
+        .map((id) => id.trim())
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
+    if (ids.isEmpty) return Stream.value([]);
+    final chunks = <List<String>>[];
+    for (var offset = 0; offset < ids.length; offset += 30) {
+      chunks.add(ids.sublist(offset, (offset + 30).clamp(0, ids.length)));
+    }
+    final subscriptions =
+        <StreamSubscription<QuerySnapshot<Map<String, dynamic>>>>[];
+    final latest = <int, List<SiteModel>>{};
+    late final StreamController<List<SiteModel>> controller;
+    controller = StreamController<List<SiteModel>>(
+      onListen: () {
+        for (var index = 0; index < chunks.length; index++) {
+          final chunkIndex = index;
+          subscriptions.add(
+            sitesCollection
+                .where(FieldPath.documentId, whereIn: chunks[index])
+                .snapshots()
+                .listen((snapshot) {
+                  latest[chunkIndex] = snapshot.docs
+                      .map(SiteModel.fromDocument)
+                      .toList();
+                  if (latest.length == chunks.length) {
+                    controller.add([
+                      for (var i = 0; i < chunks.length; i++) ...latest[i]!,
+                    ]);
+                  }
+                }, onError: controller.addError),
+          );
+        }
+      },
+      onCancel: () async {
+        await Future.wait(
+          subscriptions.map((subscription) => subscription.cancel()),
         );
+      },
+    );
+    return controller.stream;
   }
 
   /// Stream sites assigned to a supervisor using the array field query.

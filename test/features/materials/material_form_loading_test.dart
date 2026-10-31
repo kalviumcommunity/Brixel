@@ -127,7 +127,7 @@ void main() {
         expect(find.byType(CircularProgressIndicator), findsNothing);
         expect(find.text('Submit Material Usage'), findsOneWidget);
         expect(
-          find.text('Material usage recorded locally for Steel Rods'),
+          find.text('Material usage saved for Steel Rods'),
           findsOneWidget,
         );
       },
@@ -250,10 +250,7 @@ void main() {
 
         // Indicator removed via finally
         expect(find.byType(CircularProgressIndicator), findsNothing);
-        expect(
-          find.text('Attendance recorded locally for Vikram Singh'),
-          findsOneWidget,
-        );
+        expect(find.text('Attendance saved for Vikram Singh'), findsOneWidget);
       },
     );
   });

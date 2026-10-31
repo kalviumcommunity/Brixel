@@ -1,3 +1,4 @@
+import 'package:brixel/features/sites/repositories/site_repository.dart';
 import 'package:brixel/features/auth/models/user_model.dart';
 import 'package:brixel/features/auth/repositories/firestore_user_repository.dart';
 import 'package:brixel/features/auth/repositories/user_repository.dart';
@@ -15,6 +16,7 @@ class AuthStateGate extends StatefulWidget {
     super.key,
     this.authenticationState,
     this.userRepository,
+    this.siteRepository,
     this.userAuthentication,
     this.signedOutBuilder,
     this.pendingBuilder,
@@ -24,6 +26,7 @@ class AuthStateGate extends StatefulWidget {
 
   final AuthenticationState? authenticationState;
   final UserRepository? userRepository;
+  final SiteRepository? siteRepository;
   final UserAuthentication? userAuthentication;
 
   final WidgetBuilder? signedOutBuilder;
@@ -38,6 +41,9 @@ class AuthStateGate extends StatefulWidget {
 class _AuthStateGateState extends State<AuthStateGate> {
   late final AuthenticationState _authenticationState;
   late final UserRepository _userRepository;
+  late final Stream<String?> _userIds;
+  String? _profileUid;
+  Stream<UserModel?>? _profileStream;
 
   @override
   void initState() {
@@ -46,12 +52,13 @@ class _AuthStateGateState extends State<AuthStateGate> {
     _authenticationState = widget.authenticationState ?? FirebaseAuthService();
 
     _userRepository = widget.userRepository ?? FirestoreUserRepository();
+    _userIds = _authenticationState.watchUserId().distinct();
   }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<String?>(
-      stream: _authenticationState.watchUserId(),
+      stream: _userIds,
       builder: (context, authSnapshot) {
         if (authSnapshot.hasError) {
           return const _AuthStateMessageScreen(
@@ -69,6 +76,8 @@ class _AuthStateGateState extends State<AuthStateGate> {
         final uid = authSnapshot.data;
 
         if (uid == null) {
+          _profileUid = null;
+          _profileStream = null;
           return widget.signedOutBuilder?.call(context) ??
               LoginScreen(
                 authService: widget.userAuthentication,
@@ -76,8 +85,13 @@ class _AuthStateGateState extends State<AuthStateGate> {
               );
         }
 
+        if (_profileUid != uid) {
+          _profileUid = uid;
+          _profileStream = _userRepository.watchUserProfile(uid);
+        }
         return StreamBuilder<UserModel?>(
-          stream: _userRepository.watchUserProfile(uid),
+          key: ValueKey(uid),
+          stream: _profileStream,
           builder: (context, profileSnapshot) {
             if (profileSnapshot.hasError) {
               return _AuthStateMessageScreen(
@@ -114,19 +128,34 @@ class _AuthStateGateState extends State<AuthStateGate> {
     );
   }
 
+  Widget _authorizedFlow(UserModel profile) {
+    // Disposing this navigator removes every protected route on logout,
+    // role changes or assignment revocation, including open report forms.
+    return _AuthorizedSession(
+      key: ValueKey(
+        '${profile.uid}:${profile.role}:${profile.assignedSiteIds.join(',')}',
+      ),
+      profile: profile,
+      siteRepository: widget.siteRepository,
+      authentication: widget.userAuthentication,
+    );
+  }
+
   Widget _screenForRole(BuildContext context, UserModel profile) {
     switch (profile.role) {
       case 'pending':
         return widget.pendingBuilder?.call(context) ??
-            PendingAccessScreen(authService: widget.userAuthentication);
+            PendingAccessScreen(
+              profile: profile,
+              authService: widget.userAuthentication,
+            );
 
       case 'supervisor':
         return widget.supervisorBuilder?.call(context) ??
-            SiteSelectionScreen(authService: widget.userAuthentication);
+            _authorizedFlow(profile);
 
       case 'manager':
-        return widget.managerBuilder?.call(context) ??
-            SiteSelectionScreen(authService: widget.userAuthentication);
+        return widget.managerBuilder?.call(context) ?? _authorizedFlow(profile);
 
       default:
         return _AuthStateMessageScreen(
@@ -197,4 +226,36 @@ class _AuthStateMessageScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+class _AuthorizedSession extends StatefulWidget {
+  const _AuthorizedSession({
+    super.key,
+    required this.profile,
+    this.siteRepository,
+    this.authentication,
+  });
+  final UserModel profile;
+  final SiteRepository? siteRepository;
+  final UserAuthentication? authentication;
+  @override
+  State<_AuthorizedSession> createState() => _AuthorizedSessionState();
+}
+
+class _AuthorizedSessionState extends State<_AuthorizedSession> {
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  @override
+  Widget build(BuildContext context) => NavigatorPopHandler<void>(
+    onPopWithResult: (_) => _navigatorKey.currentState!.pop(),
+    child: Navigator(
+      key: _navigatorKey,
+      onGenerateRoute: (_) => MaterialPageRoute<void>(
+        builder: (_) => SiteSelectionScreen(
+          profile: widget.profile,
+          repository: widget.siteRepository,
+          authService: widget.authentication,
+        ),
+      ),
+    ),
+  );
 }

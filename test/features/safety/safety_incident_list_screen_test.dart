@@ -111,6 +111,7 @@ void main() {
     return MaterialApp(
       theme: buildBrixelTheme(),
       home: SafetyIncidentListScreen(
+        currentUserId: 'test-supervisor',
         site: testSite,
         repository: repository,
         initialIncidents: incidents ?? testIncidents,

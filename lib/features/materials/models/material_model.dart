@@ -75,6 +75,8 @@ class MaterialItemModel {
 class MaterialTransactionModel {
   final String id;
   final String materialId;
+  final String? materialName;
+  final String? unit;
   final String siteId;
   final String type; // 'received' | 'used'
   final double quantity;
@@ -85,6 +87,8 @@ class MaterialTransactionModel {
   MaterialTransactionModel({
     required this.id,
     required this.materialId,
+    this.materialName,
+    this.unit,
     required this.siteId,
     required this.type,
     required this.quantity,
@@ -96,6 +100,8 @@ class MaterialTransactionModel {
   Map<String, dynamic> toMap() {
     return {
       'materialId': materialId,
+      if (materialName != null) 'materialName': materialName,
+      if (unit != null) 'unit': unit,
       'siteId': siteId,
       'type': type,
       'quantity': quantity,
@@ -112,6 +118,8 @@ class MaterialTransactionModel {
     return MaterialTransactionModel(
       id: id,
       materialId: map['materialId'] as String? ?? '',
+      materialName: map['materialName'] as String?,
+      unit: map['unit'] as String?,
       siteId: map['siteId'] as String? ?? '',
       type: map['type'] as String? ?? 'used',
       quantity: (map['quantity'] as num?)?.toDouble() ?? 0.0,

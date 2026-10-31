@@ -1,0 +1,20 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function canAccessSite(siteId) {
+      return request.auth != null &&
+        (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'manager' ||
+          (firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'supervisor' &&
+            siteId in firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.assignedSiteIds));
+    }
+    match /sites/{siteId}/safety/{incidentId}/evidence/{fileName} {
+      allow read: if canAccessSite(siteId);
+      allow create: if canAccessSite(siteId) && request.resource.size > 0 &&
+        request.resource.size <= 10 * 1024 * 1024 &&
+        request.resource.contentType.matches('image/(jpeg|png|webp|gif|heic|heif)');
+      // Evidence is immutable. Deleting a report does not destroy its evidence.
+      allow update, delete: if false;
+    }
+    match /{path=**} { allow read, write: if false; }
+  }
+}

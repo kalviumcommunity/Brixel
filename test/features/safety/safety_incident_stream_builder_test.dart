@@ -107,6 +107,7 @@ void main() {
         return MaterialApp(
           theme: buildBrixelTheme(),
           home: SafetyIncidentListScreen(
+            currentUserId: 'test-supervisor',
             site: testSite,
             repository: writeRepository,
             incidentStream: stream ?? streamController.stream,
@@ -153,10 +154,7 @@ void main() {
           await tester.pumpAndSettle();
 
           // Verify records appear without manual refresh
-          expect(
-            find.text('Live Firestore Sync Active (snapshots)'),
-            findsOneWidget,
-          );
+          expect(find.text('Site safety reports'), findsOneWidget);
           expect(find.text('Doc ID: inc_101'), findsOneWidget);
           expect(find.text('Hydraulic leak on crane'), findsOneWidget);
           expect(find.text('Doc ID: inc_102'), findsOneWidget);
@@ -290,6 +288,7 @@ void main() {
           MaterialApp(
             theme: buildBrixelTheme(),
             home: SafetyIncidentListScreen(
+              currentUserId: 'test-supervisor',
               site: testSite,
               repository: writeRepository,
               readRepository: TestReadRepository(streamController.stream),
@@ -324,7 +323,7 @@ void main() {
         expect(find.text('Failed to load safety reports'), findsOneWidget);
         expect(
           find.textContaining('Connection lost to Firestore cluster'),
-          findsOneWidget,
+          findsNothing,
         );
       });
     },

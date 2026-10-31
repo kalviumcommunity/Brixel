@@ -2,7 +2,7 @@ import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/auth/screens/sign_up_screen.dart';
 import 'package:brixel/features/auth/services/firebase_auth_service.dart';
 import 'package:brixel/features/auth/services/user_authentication.dart';
-import 'package:brixel/features/sites/screens/site_selection_screen.dart';
+import 'package:brixel/features/auth/screens/auth_state_gate.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) {
+    if (_isSubmitting || !_formKey.currentState!.validate()) {
       return;
     }
 
@@ -89,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       final destination = widget.destinationBuilder != null
           ? widget.destinationBuilder!(context)
-          : const SiteSelectionScreen();
+          : const AuthStateGate();
 
       Navigator.pushReplacement(
         context,
@@ -129,24 +129,32 @@ class _LoginScreenState extends State<LoginScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Log in')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Form(
             key: _formKey,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: 56),
+                const Icon(
+                  Icons.engineering,
+                  size: 48,
+                  color: BrixelColors.primary,
+                ),
+                const SizedBox(height: 16),
                 Text(
                   'Welcome Back',
+                  textAlign: TextAlign.center,
                   style: textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Sign in to access your site operations and daily reporting.',
+                  'Sign in to your Brixel account.',
+                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 28),
 

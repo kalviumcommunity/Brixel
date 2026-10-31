@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/features/auth/screens/login_screen.dart';
 import 'package:brixel/features/auth/screens/sign_up_screen.dart';
@@ -13,6 +15,7 @@ class FakeUserAuthentication implements UserAuthentication {
   String? submittedEmail;
   String? submittedPassword;
   Object? errorToThrow;
+  Completer<void>? pending;
 
   @override
   Future<void> signOut() async {}
@@ -23,6 +26,7 @@ class FakeUserAuthentication implements UserAuthentication {
     submittedEmail = email;
     submittedPassword = password;
 
+    if (pending != null) await pending!.future;
     if (errorToThrow != null) {
       throw errorToThrow!;
     }
@@ -33,9 +37,41 @@ void main() {
   Widget buildTestApp(UserAuthentication authService) {
     return MaterialApp(
       theme: buildBrixelTheme(),
-      home: LoginScreen(authService: authService),
+      home: LoginScreen(
+        authService: authService,
+        destinationBuilder: (_) => const SiteSelectionScreen(),
+      ),
     );
   }
+
+  testWidgets(
+    'duplicate login submission is blocked and failure clears loading',
+    (tester) async {
+      final pending = Completer<void>();
+      final auth = FakeUserAuthentication()
+        ..pending = pending
+        ..errorToThrow = FirebaseAuthException(code: 'invalid-credential');
+      await tester.pumpWidget(buildTestApp(auth));
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Email'),
+        'user@example.com',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Password'),
+        'invalid-pass',
+      );
+      await tester.tap(find.byKey(const Key('loginButton')));
+      await tester.pump();
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await tester.pump();
+      expect(auth.callCount, 1);
+      expect(find.text('Logging in...'), findsOneWidget);
+      pending.complete();
+      await tester.pumpAndSettle();
+      expect(find.text('Incorrect email or password.'), findsOneWidget);
+      expect(find.text('Log in'), findsOneWidget);
+    },
+  );
 
   group('LoginScreen Form Validation', () {
     testWidgets('uses email keyboard and keeps password obscured initially', (
@@ -267,7 +303,10 @@ void main() {
 
         expect(find.byType(LoginScreen), findsNothing);
 
-        expect(find.text('Select a site'), findsOneWidget);
+        expect(
+          find.text('No sites assigned. Contact your manager.'),
+          findsOneWidget,
+        );
       },
     );
 

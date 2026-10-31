@@ -6,7 +6,9 @@ void main() {
   testWidgets('attendance fields use appropriate keyboard actions', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: AttendanceFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: AttendanceFormScreen(onSubmit: (_) async {})),
+    );
 
     final workerField = tester.widget<EditableText>(
       find.descendant(
@@ -38,7 +40,9 @@ void main() {
   });
 
   testWidgets('attendance form renders and can submit', (tester) async {
-    await tester.pumpWidget(const MaterialApp(home: AttendanceFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: AttendanceFormScreen(onSubmit: (_) async {})),
+    );
 
     expect(find.text('Attendance Report'), findsOneWidget);
     expect(find.text('Worker / Crew Name'), findsOneWidget);
@@ -78,7 +82,9 @@ void main() {
   testWidgets('attendance requires worker name, trade, and hours', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: AttendanceFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: AttendanceFormScreen(onSubmit: (_) async {})),
+    );
 
     await tester.tap(find.text('Submit Attendance'));
     await tester.pump();
@@ -91,7 +97,9 @@ void main() {
   testWidgets('attendance hours must be numeric and within the allowed range', (
     tester,
   ) async {
-    await tester.pumpWidget(const MaterialApp(home: AttendanceFormScreen()));
+    await tester.pumpWidget(
+      MaterialApp(home: AttendanceFormScreen(onSubmit: (_) async {})),
+    );
 
     await tester.enterText(
       find.widgetWithText(TextFormField, 'Worker / Crew Name'),
@@ -119,9 +127,6 @@ void main() {
     await tester.tap(find.text('Submit Attendance'));
     await tester.pump();
 
-    expect(
-      find.text('Attendance recorded locally for Mason Crew'),
-      findsOneWidget,
-    );
+    expect(find.text('Attendance saved for Mason Crew'), findsOneWidget);
   });
 }

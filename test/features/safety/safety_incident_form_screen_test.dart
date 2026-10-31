@@ -109,6 +109,42 @@ Future<void> scrollToBottom(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('tab submission preserves the containing authenticated route', (
+    tester,
+  ) async {
+    final repository = FakeSafetyIncidentRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SafetyIncidentFormScreen(
+                    siteId: 'site-test',
+                    reportedBy: 'supervisor-test',
+                    repository: repository,
+                    popOnSuccess: false,
+                  ),
+                ),
+              ),
+              child: const Text('Open site'),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.tap(find.text('Open site'));
+    await tester.pumpAndSettle();
+    await enterValidIncident(tester);
+    await scrollToBottom(tester);
+    await tester.tap(find.byKey(const Key('submitIncidentButton')));
+    await tester.pumpAndSettle();
+    expect(repository.addedIncident?.siteId, 'site-test');
+    expect(find.byType(SafetyIncidentFormScreen), findsOneWidget);
+    expect(find.text('Open site'), findsNothing);
+  });
+
   testWidgets('safety description is configured for multiline input', (
     tester,
   ) async {

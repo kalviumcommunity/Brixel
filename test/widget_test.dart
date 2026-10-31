@@ -1,3 +1,4 @@
+import 'package:brixel/features/sites/models/site_model.dart';
 import 'package:brixel/features/sites/screens/site_selection_screen.dart';
 import 'package:brixel/main.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,30 @@ void main() {
   testWidgets('selected site is preserved across bottom navigation', (
     WidgetTester tester,
   ) async {
-    await tester.pumpWidget(const MyApp(home: SiteSelectionScreen()));
+    await tester.pumpWidget(
+      MyApp(
+        home: SiteSelectionScreen(
+          sites: Stream.value([
+            SiteModel(
+              id: 'jaipur',
+              name: 'Jaipur Residential Project',
+              location: 'Jaipur',
+              status: 'active',
+              expectedHeadcount: 0,
+              createdAt: DateTime(2026),
+            ),
+            SiteModel(
+              id: 'ajmer',
+              name: 'Ajmer Commercial Project',
+              location: 'Ajmer',
+              status: 'active',
+              expectedHeadcount: 0,
+              createdAt: DateTime(2026),
+            ),
+          ]),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Select a site'), findsOneWidget);

@@ -43,7 +43,10 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: buildBrixelTheme(),
-            home: const AttendanceFormScreen(siteName: 'Jaipur Site'),
+            home: AttendanceFormScreen(
+              siteName: 'Jaipur Site',
+              onSubmit: (_) async {},
+            ),
           ),
         );
 
@@ -85,10 +88,7 @@ void main() {
         await tester.tap(find.byType(BrixelPrimaryButton));
         await tester.pump();
 
-        expect(
-          find.text('Attendance recorded locally for Ramesh Kumar'),
-          findsOneWidget,
-        );
+        expect(find.text('Attendance saved for Ramesh Kumar'), findsOneWidget);
         final successSnackBar = tester.widget<SnackBar>(find.byType(SnackBar));
         expect(successSnackBar.backgroundColor, BrixelColors.success);
       },
@@ -136,7 +136,10 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             theme: buildBrixelTheme(),
-            home: const MaterialFormScreen(siteName: 'Ajmer Commercial Site'),
+            home: MaterialFormScreen(
+              siteName: 'Ajmer Commercial Site',
+              onSubmit: (_) async {},
+            ),
           ),
         );
 
@@ -171,7 +174,7 @@ void main() {
         await tester.pump();
 
         expect(
-          find.text('Material usage recorded locally for OPC Cement'),
+          find.text('Material usage saved for OPC Cement'),
           findsOneWidget,
         );
         final successSnackBar = tester.widget<SnackBar>(find.byType(SnackBar));

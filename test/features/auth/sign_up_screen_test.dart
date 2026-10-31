@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:brixel/features/auth/screens/sign_up_screen.dart';
 import 'package:brixel/features/auth/services/user_registration.dart';
 import 'package:flutter/material.dart';
@@ -116,6 +117,54 @@ void main() {
     );
   });
 
+  testWidgets(
+    'partial registration explains recovery without claiming success',
+    (tester) async {
+      final registration = FakeUserRegistration()
+        ..errorToThrow = const RegistrationProfileUnavailable();
+      await tester.pumpWidget(buildTestApp(registration));
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Test User');
+      await tester.enterText(fields.at(1), 'test@example.com');
+      await tester.enterText(fields.at(2), 'password123');
+      await tester.enterText(fields.at(3), 'password123');
+      await tester.tap(find.byKey(const Key('createAccountButton')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('do not register again'), findsOneWidget);
+      expect(
+        find.text('Account created. Access will be available after approval.'),
+        findsNothing,
+      );
+    },
+  );
+
+  for (final entry in {
+    'email-already-in-use': 'An account already exists for this email.',
+    'operation-not-allowed': 'Account creation is not enabled.',
+    'network-request-failed': 'Could not reach the sign-in service.',
+  }.entries) {
+    testWidgets('signup identifies ${entry.key} without raw error details', (
+      tester,
+    ) async {
+      final registration = FakeUserRegistration()
+        ..errorToThrow = FirebaseAuthException(
+          code: entry.key,
+          message: 'private backend detail',
+        );
+      await tester.pumpWidget(buildTestApp(registration));
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'Test User');
+      await tester.enterText(fields.at(1), 'test@example.com');
+      await tester.enterText(fields.at(2), 'password123');
+      await tester.enterText(fields.at(3), 'password123');
+      await tester.tap(find.byKey(const Key('createAccountButton')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining(entry.value), findsOneWidget);
+      expect(find.textContaining('private backend detail'), findsNothing);
+      expect(find.text('Creating account...'), findsNothing);
+    });
+  }
+
   testWidgets('shows feedback when registration fails', (
     WidgetTester tester,
   ) async {
@@ -136,6 +185,9 @@ void main() {
 
     expect(registration.callCount, 1);
 
-    expect(find.textContaining('Unable to create account'), findsOneWidget);
+    expect(
+      find.textContaining('Could not finish creating your account'),
+      findsOneWidget,
+    );
   });
 }

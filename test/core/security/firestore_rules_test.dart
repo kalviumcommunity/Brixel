@@ -142,12 +142,12 @@ void main() {
       );
       expect(
         rulesContent,
-        contains('allow read: if isAuthenticated();'),
+        contains('canAccessSite('),
         reason: 'Authenticated users can view sites',
       );
       expect(
         rulesContent,
-        contains('allow create, update, delete: if isSupervisorOrManager();'),
+        contains('allow create, update, delete: if isManager();'),
         reason: 'Only supervisors/managers can modify site records',
       );
     });
@@ -180,12 +180,14 @@ void main() {
         );
         expect(
           rulesContent,
-          contains('allow read: if isAuthenticated();'),
+          contains('canAccessSite('),
           reason: 'Authenticated users can view inventory',
         );
         expect(
           rulesContent,
-          contains('allow create: if isSupervisorOrManager();'),
+          contains(
+            'allow create: if canAccessSite(request.resource.data.siteId);',
+          ),
           reason: 'Inventory adjustment requires supervisor or manager role',
         );
       },

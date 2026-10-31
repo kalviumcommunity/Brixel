@@ -1,3 +1,6 @@
+import 'package:brixel/features/reporting/screens/site_report_list_screen.dart';
+import 'package:brixel/features/sites/models/site.dart';
+import 'package:brixel/features/reporting/repositories/site_report_repository.dart';
 import 'package:brixel/core/theme/brixel_theme.dart';
 import 'package:brixel/shared/widgets/brixel_primary_button.dart';
 import 'package:brixel/shared/widgets/brixel_section_card.dart';
@@ -5,9 +8,15 @@ import 'package:brixel/shared/widgets/brixel_section_title.dart';
 import 'package:flutter/material.dart';
 
 class MaterialFormScreen extends StatefulWidget {
-  const MaterialFormScreen({super.key, this.siteName, this.onSubmit});
+  const MaterialFormScreen({
+    super.key,
+    this.siteName,
+    this.siteId,
+    this.onSubmit,
+  });
 
   final String? siteName;
+  final String? siteId;
   final Future<void> Function(Map<String, dynamic> data)? onSubmit;
 
   @override
@@ -53,6 +62,8 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
 
       if (widget.onSubmit != null) {
         await widget.onSubmit!(payload);
+      } else {
+        await SiteReportRepository().saveMaterial(widget.siteId ?? '', payload);
       }
 
       if (!mounted) return;
@@ -61,12 +72,10 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Material usage recorded locally for $materialName'),
+          content: Text('Material usage saved for $materialName'),
           backgroundColor: BrixelColors.success,
         ),
       );
-
-      debugPrint('Material form submitted: $payload');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -88,7 +97,30 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Materials')),
+      appBar: AppBar(
+        title: const Text('Materials'),
+        actions: [
+          IconButton(
+            tooltip: 'Usage history',
+            icon: const Icon(Icons.history),
+            onPressed: () {
+              if (widget.siteId == null) return;
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => SiteReportListScreen(
+                    site: Site(
+                      id: widget.siteId!,
+                      name: widget.siteName ?? '',
+                      location: '',
+                    ),
+                    materials: true,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -146,7 +178,7 @@ class _MaterialFormScreenState extends State<MaterialFormScreen> {
                         }
 
                         final quantity = double.tryParse(raw);
-                        if (quantity == null) {
+                        if (quantity == null || !quantity.isFinite) {
                           return 'Please enter a valid number.';
                         }
                         if (quantity <= 0) {

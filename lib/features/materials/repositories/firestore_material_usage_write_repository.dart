@@ -34,9 +34,14 @@ class FirestoreMaterialUsageWriteRepository
       );
     }
 
+    if (!usage.quantity.isFinite ||
+        usage.quantity <= 0 ||
+        usage.recordedBy.trim().isEmpty) {
+      throw ArgumentError(
+        'Usage requires a positive finite quantity and author.',
+      );
+    }
     final payload = buildUsagePayload(usage);
-    final document = await _databaseService.transactionsCollection.add(payload);
-
-    return document.id;
+    return _databaseService.addMaterialTransaction(payload);
   }
 }
