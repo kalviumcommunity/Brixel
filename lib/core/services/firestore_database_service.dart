@@ -147,7 +147,15 @@ class FirestoreDatabaseService {
     });
   }
 
-  /// Stream assigned sites for a supervisor
+  /// Stream all sites. Firestore rules enforce the caller's access.
+  Stream<List<SiteModel>> streamAllSites() {
+    return sitesCollection.snapshots().map(
+      (snapshot) =>
+          snapshot.docs.map((doc) => SiteModel.fromDocument(doc)).toList(),
+    );
+  }
+
+  /// Stream assigned sites for a supervisor.
   Stream<List<SiteModel>> streamAssignedSites(List<String> siteIds) {
     final ids = siteIds
         .map((id) => id.trim())
