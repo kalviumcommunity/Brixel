@@ -1,6 +1,3 @@
-import 'package:brixel/features/sites/models/site_model.dart';
-import 'package:brixel/features/sites/repositories/site_repository.dart';
-
 import 'dart:async';
 
 import 'package:brixel/features/auth/models/user_model.dart';
@@ -445,7 +442,6 @@ void main() {
         return AuthStateGate(
           authenticationState: auth,
           userRepository: repository,
-          siteRepository: FakeSiteRepository(),
           userAuthentication: auth,
           siteRepository: TestSiteRepository(),
           supervisorBuilder: (_) => SiteSelectionScreen(
