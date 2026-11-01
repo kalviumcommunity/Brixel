@@ -31,6 +31,19 @@ class Profiles implements UserRepository {
     reads++;
     return controller.stream;
   }
+
+  @override
+  Stream<List<UserModel>> watchPendingUsers() => Stream.value(const []);
+
+  @override
+  Future<void> approveUser(
+    String uid, {
+    String role = 'supervisor',
+    List<String> assignedSiteIds = const [],
+  }) async {}
+
+  @override
+  Future<void> rejectUser(String uid) async {}
 }
 
 void main() {

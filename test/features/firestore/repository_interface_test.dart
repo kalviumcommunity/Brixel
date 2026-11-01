@@ -18,6 +18,40 @@ class FakeUserRepository implements UserRepository {
 
     return Stream.value(profiles[uid]);
   }
+
+  @override
+  Stream<List<UserModel>> watchPendingUsers() {
+    return Stream.value(
+      profiles.values.whereType<UserModel>().where((u) => u.isPending).toList(),
+    );
+  }
+
+  @override
+  Future<void> approveUser(
+    String uid, {
+    String role = 'supervisor',
+    List<String> assignedSiteIds = const [],
+  }) async {
+    final existing = profiles[uid];
+    if (existing != null) {
+      profiles[uid] = existing.copyWith(
+        status: 'approved',
+        role: role,
+        assignedSiteIds: assignedSiteIds,
+      );
+    }
+  }
+
+  @override
+  Future<void> rejectUser(String uid) async {
+    final existing = profiles[uid];
+    if (existing != null) {
+      profiles[uid] = existing.copyWith(
+        status: 'rejected',
+        role: 'rejected',
+      );
+    }
+  }
 }
 
 class FakeSiteRepository implements SiteRepository {

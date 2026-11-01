@@ -136,4 +136,55 @@ void main() {
     expect(repository.requestedSupervisorId, isNull);
     expect(find.text('Jaipur Residential Project'), findsNothing);
   });
+
+  testWidgets('admin approvals button is visible for managers and opens approval screen', (
+    tester,
+  ) async {
+    final repository = FakeSiteRepository([]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SiteSelectionScreen(
+          profile: UserModel(
+            uid: 'test-manager',
+            email: 'manager@example.com',
+            displayName: 'Manager',
+            role: 'manager',
+            assignedSiteIds: const [],
+            createdAt: DateTime(2026, 10, 16),
+          ),
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(const Key('adminApprovalsButton'));
+    expect(button, findsOneWidget);
+  });
+
+  testWidgets('admin approvals button is hidden for supervisors', (
+    tester,
+  ) async {
+    final repository = FakeSiteRepository([]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SiteSelectionScreen(
+          profile: UserModel(
+            uid: 'test-supervisor',
+            email: 'supervisor@example.com',
+            displayName: 'Supervisor',
+            role: 'supervisor',
+            assignedSiteIds: const [],
+            createdAt: DateTime(2026, 10, 16),
+          ),
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('adminApprovalsButton')), findsNothing);
+  });
 }

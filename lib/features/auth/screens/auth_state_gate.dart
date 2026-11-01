@@ -137,24 +137,38 @@ class _AuthStateGateState extends State<AuthStateGate> {
       ),
       profile: profile,
       siteRepository: widget.siteRepository,
+      userRepository: _userRepository,
       authentication: widget.userAuthentication,
     );
   }
 
   Widget _screenForRole(BuildContext context, UserModel profile) {
-    switch (profile.role) {
-      case 'pending':
-        return widget.pendingBuilder?.call(context) ??
-            PendingAccessScreen(
-              profile: profile,
-              authService: widget.userAuthentication,
-            );
+    if (profile.isRejected) {
+      return _AuthStateMessageScreen(
+        title: 'Registration Rejected',
+        message:
+            'Your Brixel registration request was rejected by an administrator. '
+            'Please contact your project manager or administrator if you believe this is an error.',
+        showLogout: true,
+        userAuthentication: widget.userAuthentication,
+      );
+    }
 
+    if (profile.isPending) {
+      return widget.pendingBuilder?.call(context) ??
+          PendingAccessScreen(
+            profile: profile,
+            authService: widget.userAuthentication,
+          );
+    }
+
+    switch (profile.role) {
       case 'supervisor':
         return widget.supervisorBuilder?.call(context) ??
             _authorizedFlow(profile);
 
       case 'manager':
+      case 'admin':
         return widget.managerBuilder?.call(context) ?? _authorizedFlow(profile);
 
       default:
@@ -233,10 +247,12 @@ class _AuthorizedSession extends StatefulWidget {
     super.key,
     required this.profile,
     this.siteRepository,
+    this.userRepository,
     this.authentication,
   });
   final UserModel profile;
   final SiteRepository? siteRepository;
+  final UserRepository? userRepository;
   final UserAuthentication? authentication;
   @override
   State<_AuthorizedSession> createState() => _AuthorizedSessionState();
@@ -253,6 +269,7 @@ class _AuthorizedSessionState extends State<_AuthorizedSession> {
         builder: (_) => SiteSelectionScreen(
           profile: widget.profile,
           repository: widget.siteRepository,
+          userRepository: widget.userRepository,
           authService: widget.authentication,
         ),
       ),

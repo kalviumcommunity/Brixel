@@ -5,6 +5,7 @@ class UserModel {
   final String email;
   final String displayName;
   final String role; // 'pending' | 'supervisor' | 'manager'
+  final String status; // 'pending' | 'approved' | 'rejected'
   final List<String> assignedSiteIds;
   final DateTime createdAt;
   final DateTime? updatedAt;
@@ -14,10 +15,20 @@ class UserModel {
     required this.email,
     required this.displayName,
     required this.role,
+    String? status,
     this.assignedSiteIds = const [],
     required this.createdAt,
     this.updatedAt,
-  });
+  }) : status = status ?? (role == 'pending' ? 'pending' : 'approved');
+
+  bool get isApproved =>
+      status == 'approved' ||
+      (status != 'rejected' &&
+          (role == 'supervisor' || role == 'manager' || role == 'admin'));
+
+  bool get isPending => status == 'pending' || role == 'pending';
+
+  bool get isRejected => status == 'rejected';
 
   Map<String, dynamic> toMap() {
     return {
@@ -25,6 +36,7 @@ class UserModel {
       'email': email,
       'displayName': displayName,
       'role': role,
+      'status': status,
       'assignedSiteIds': assignedSiteIds,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': updatedAt != null
@@ -34,11 +46,14 @@ class UserModel {
   }
 
   factory UserModel.fromMap(Map<String, dynamic> map, String id) {
+    final role = map['role'] as String? ?? 'pending';
+    final status = map['status'] as String? ?? (role == 'pending' ? 'pending' : 'approved');
     return UserModel(
       uid: id,
       email: map['email'] as String? ?? '',
       displayName: map['displayName'] as String? ?? '',
-      role: map['role'] as String? ?? 'pending',
+      role: role,
+      status: status,
       assignedSiteIds: List<String>.from(map['assignedSiteIds'] ?? []),
       createdAt: (map['createdAt'] is Timestamp)
           ? (map['createdAt'] as Timestamp).toDate()
@@ -59,6 +74,7 @@ class UserModel {
     String? email,
     String? displayName,
     String? role,
+    String? status,
     List<String>? assignedSiteIds,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -68,6 +84,7 @@ class UserModel {
       email: email ?? this.email,
       displayName: displayName ?? this.displayName,
       role: role ?? this.role,
+      status: status ?? this.status,
       assignedSiteIds: assignedSiteIds ?? this.assignedSiteIds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

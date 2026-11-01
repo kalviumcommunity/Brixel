@@ -55,12 +55,13 @@ service cloud.firestore {
         request.resource.data.updatedAt == request.time && (
         isManager() || (
           request.resource.data.role == 'pending' &&
+          (!('status' in request.resource.data) || request.resource.data.status == 'pending') &&
           (!('assignedSiteIds' in request.resource.data) || request.resource.data.assignedSiteIds.size() == 0)
         )
       );
       allow update: if isManager() || (
         isOwner(userId) &&
-        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'assignedSiteIds', 'uid', 'email'])
+        !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'status', 'assignedSiteIds', 'uid', 'email'])
       );
       allow delete: if isManager();
     }

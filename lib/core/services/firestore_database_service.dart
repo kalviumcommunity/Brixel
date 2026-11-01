@@ -147,6 +147,41 @@ class FirestoreDatabaseService {
     });
   }
 
+  /// Stream all pending user profiles awaiting admin approval.
+  Stream<List<UserModel>> streamPendingUsers() {
+    return usersCollection.snapshots().map((snapshot) {
+      final pendingUsers = snapshot.docs
+          .map((doc) => UserModel.fromDocument(doc))
+          .where((u) => u.isPending && !u.isRejected)
+          .toList();
+      pendingUsers.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return pendingUsers;
+    });
+  }
+
+  /// Approve user and assign role and site assignments.
+  Future<void> approveUser(
+    String uid, {
+    String role = 'supervisor',
+    List<String> assignedSiteIds = const [],
+  }) async {
+    await usersCollection.doc(uid).update({
+      'status': 'approved',
+      'role': role,
+      'assignedSiteIds': assignedSiteIds,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Reject user access.
+  Future<void> rejectUser(String uid) async {
+    await usersCollection.doc(uid).update({
+      'status': 'rejected',
+      'role': 'rejected',
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Stream all sites. Firestore rules enforce the caller's access.
   Stream<List<SiteModel>> streamAllSites() {
     return sitesCollection.snapshots().map(
