@@ -1,6 +1,7 @@
-# brixel
+# Brixel
 
-A new Flutter project.
+Brixel is a cross-platform app for construction teams to track site attendance,
+material usage, and safety incidents in real time.
 
 ## Getting Started
 
