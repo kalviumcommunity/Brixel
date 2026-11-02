@@ -1,4 +1,6 @@
 import 'package:brixel/features/auth/models/user_model.dart';
+import 'package:brixel/features/auth/repositories/user_repository.dart';
+import 'package:brixel/features/auth/screens/admin_approval_screen.dart';
 import 'package:brixel/features/sites/models/site_model.dart';
 import 'package:brixel/features/sites/repositories/site_repository.dart';
 import 'package:brixel/features/sites/repositories/firestore_site_repository.dart';
@@ -17,12 +19,14 @@ class SiteSelectionScreen extends StatefulWidget {
     this.profile,
     this.repository,
     this.sites,
+    this.userRepository,
   });
 
   final UserAuthentication? authService;
   final UserModel? profile;
   final SiteRepository? repository;
   final Stream<List<SiteModel>>? sites;
+  final UserRepository? userRepository;
 
   @override
   State<SiteSelectionScreen> createState() => _SiteSelectionScreenState();
@@ -71,6 +75,21 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
       appBar: AppBar(
         title: const Text('Brixel'),
         actions: [
+          if (widget.profile?.role == 'manager' || widget.profile?.role == 'admin')
+            IconButton(
+              key: const Key('adminApprovalsButton'),
+              icon: const Icon(Icons.admin_panel_settings_outlined),
+              tooltip: 'User Approvals',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (context) => AdminApprovalScreen(
+                      userRepository: widget.userRepository,
+                    ),
+                  ),
+                );
+              },
+            ),
           if (widget.profile != null)
             LogoutButton(authService: widget.authService),
         ],

@@ -1,6 +1,3 @@
-import 'package:brixel/features/sites/models/site_model.dart';
-import 'package:brixel/features/sites/repositories/site_repository.dart';
-
 import 'dart:async';
 
 import 'package:brixel/features/auth/models/user_model.dart';
@@ -43,6 +40,40 @@ class FakeUserRepository implements UserRepository {
     }
 
     return Stream.value(profiles[uid]);
+  }
+
+  @override
+  Stream<List<UserModel>> watchPendingUsers() {
+    return Stream.value(
+      profiles.values.whereType<UserModel>().where((u) => u.isPending).toList(),
+    );
+  }
+
+  @override
+  Future<void> approveUser(
+    String uid, {
+    String role = 'supervisor',
+    List<String> assignedSiteIds = const [],
+  }) async {
+    final existing = profiles[uid];
+    if (existing != null) {
+      profiles[uid] = existing.copyWith(
+        status: 'approved',
+        role: role,
+        assignedSiteIds: assignedSiteIds,
+      );
+    }
+  }
+
+  @override
+  Future<void> rejectUser(String uid) async {
+    final existing = profiles[uid];
+    if (existing != null) {
+      profiles[uid] = existing.copyWith(
+        status: 'rejected',
+        role: 'rejected',
+      );
+    }
   }
 }
 
@@ -213,6 +244,25 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('PENDING DESTINATION'), findsOneWidget);
+  });
+
+  testWidgets('routes rejected user to rejection screen', (tester) async {
+    await tester.pumpWidget(
+      buildApp(
+        authStream: Stream.value('user-1'),
+        profiles: {
+          'user-1': buildProfile(role: 'rejected').copyWith(status: 'rejected'),
+        },
+      ),
+    );
+
+    await tester.pumpAndSettle();
+
+    expect(find.text('Registration Rejected'), findsOneWidget);
+    expect(
+      find.textContaining('rejected by an administrator'),
+      findsOneWidget,
+    );
   });
 
   testWidgets(
@@ -445,7 +495,6 @@ void main() {
         return AuthStateGate(
           authenticationState: auth,
           userRepository: repository,
-          siteRepository: FakeSiteRepository(),
           userAuthentication: auth,
           siteRepository: TestSiteRepository(),
           supervisorBuilder: (_) => SiteSelectionScreen(

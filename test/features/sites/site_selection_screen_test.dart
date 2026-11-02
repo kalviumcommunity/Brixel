@@ -1,3 +1,4 @@
+import 'package:brixel/features/auth/models/user_model.dart';
 import 'package:brixel/features/navigation/screens/app_navigation_shell.dart';
 import 'package:brixel/features/sites/models/site_model.dart';
 import 'package:brixel/features/sites/repositories/site_repository.dart';
@@ -50,9 +51,16 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: SiteSelectionScreen(
-          userRole: 'supervisor',
-          assignedSiteIds: const ['site-assigned-42'],
-          siteRepository: repository,
+          profile: UserModel(
+            uid: 'test-supervisor',
+            email: 'supervisor@example.com',
+            displayName: 'Supervisor',
+            role: 'supervisor',
+            assignedSiteIds: const ['site-assigned-42'],
+            createdAt: DateTime(2026, 10, 16),
+            updatedAt: DateTime(2026, 10, 16),
+          ),
+          repository: repository,
         ),
       ),
     );
@@ -91,8 +99,16 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: SiteSelectionScreen(
-          userRole: 'manager',
-          siteRepository: repository,
+          profile: UserModel(
+            uid: 'test-manager',
+            email: 'manager@example.com',
+            displayName: 'Manager',
+            role: 'manager',
+            assignedSiteIds: const [],
+            createdAt: DateTime(2026, 10, 16),
+            updatedAt: DateTime(2026, 10, 16),
+          ),
+          repository: repository,
         ),
       ),
     );
@@ -108,16 +124,67 @@ void main() {
     final repository = FakeSiteRepository([]);
 
     await tester.pumpWidget(
-      MaterialApp(home: SiteSelectionScreen(siteRepository: repository)),
+      MaterialApp(home: SiteSelectionScreen(repository: repository)),
     );
     await tester.pumpAndSettle();
 
     expect(
-      find.text('No sites are currently assigned to your account.'),
+      find.text('No sites assigned. Contact your manager.'),
       findsOneWidget,
     );
     expect(repository.requestedSiteIds, isNull);
     expect(repository.requestedSupervisorId, isNull);
     expect(find.text('Jaipur Residential Project'), findsNothing);
+  });
+
+  testWidgets('admin approvals button is visible for managers and opens approval screen', (
+    tester,
+  ) async {
+    final repository = FakeSiteRepository([]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SiteSelectionScreen(
+          profile: UserModel(
+            uid: 'test-manager',
+            email: 'manager@example.com',
+            displayName: 'Manager',
+            role: 'manager',
+            assignedSiteIds: const [],
+            createdAt: DateTime(2026, 10, 16),
+          ),
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final button = find.byKey(const Key('adminApprovalsButton'));
+    expect(button, findsOneWidget);
+  });
+
+  testWidgets('admin approvals button is hidden for supervisors', (
+    tester,
+  ) async {
+    final repository = FakeSiteRepository([]);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SiteSelectionScreen(
+          profile: UserModel(
+            uid: 'test-supervisor',
+            email: 'supervisor@example.com',
+            displayName: 'Supervisor',
+            role: 'supervisor',
+            assignedSiteIds: const [],
+            createdAt: DateTime(2026, 10, 16),
+          ),
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('adminApprovalsButton')), findsNothing);
   });
 }

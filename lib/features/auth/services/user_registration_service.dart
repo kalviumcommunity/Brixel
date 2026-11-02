@@ -40,6 +40,7 @@ class UserRegistrationService implements UserRegistration {
             'email': user.email ?? email.trim(),
             'displayName': displayName.trim(),
             'role': 'pending',
+            'status': 'pending',
             'assignedSiteIds': <String>[],
             'createdAt': FieldValue.serverTimestamp(),
             'updatedAt': FieldValue.serverTimestamp(),

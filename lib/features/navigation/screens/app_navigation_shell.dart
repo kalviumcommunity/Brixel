@@ -18,12 +18,14 @@ class AppNavigationShell extends StatefulWidget {
     this.initialIndex = 0,
     this.authService,
     this.profile,
+    this.reports,
   });
 
   final Site site;
   final UserModel? profile;
   final int initialIndex;
   final UserAuthentication? authService;
+  final SiteReportRepository? reports;
 
   @override
   State<AppNavigationShell> createState() => _AppNavigationShellState();
@@ -50,11 +52,19 @@ class _AppNavigationShellState extends State<AppNavigationShell> {
   }
 
   void _buildScreens() {
+    SiteReportRepository? reports = widget.reports;
+    if (reports == null && widget.profile != null) {
+      try {
+        reports = SiteReportRepository();
+      } catch (_) {
+        reports = null;
+      }
+    }
     _screens = [
       SiteDashboardScreen(
         site: widget.site,
         displayName: widget.profile?.displayName,
-        reports: widget.profile == null ? null : SiteReportRepository(),
+        reports: reports,
       ),
       AttendanceFormScreen(siteName: widget.site.name, siteId: widget.site.id),
       MaterialFormScreen(siteName: widget.site.name, siteId: widget.site.id),
