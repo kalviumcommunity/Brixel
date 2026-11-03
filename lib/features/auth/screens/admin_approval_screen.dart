@@ -33,13 +33,27 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
     return '$year-$month-$day $hour:$minute';
   }
 
-  Future<void> _handleApprove(UserModel user, String role) async {
+  static const _availableSites = [
+    {'id': 'site_jaipur_01', 'name': 'Jaipur Residential Project'},
+    {'id': 'site_metro_line1', 'name': 'Metro Line 1 - Station Pier 4'},
+    {'id': 'site_tower_b', 'name': 'Phoenix Tower B'},
+  ];
+
+  Future<void> _handleApprove(UserModel user, String role, [List<String>? assignedSiteIds]) async {
     setState(() {
       _processingUserIds.add(user.uid);
     });
 
     try {
-      await _repository.approveUser(user.uid, role: role);
+      final sitesToAssign = assignedSiteIds ??
+          (role == 'supervisor'
+              ? const ['site_jaipur_01', 'site_metro_line1', 'site_tower_b']
+              : const <String>[]);
+      await _repository.approveUser(
+        user.uid,
+        role: role,
+        assignedSiteIds: sitesToAssign,
+      );
       if (!mounted) return;
 
       final roleLabel = role == 'manager' ? 'Project Manager' : 'Site Supervisor';
@@ -112,6 +126,7 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
 
   Future<void> _showApprovalDialog(UserModel user) async {
     String selectedRole = 'supervisor';
+    final Set<String> selectedSiteIds = {'site_jaipur_01'};
 
     await showDialog<void>(
       context: context,
@@ -164,6 +179,34 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
                         ],
                       ),
                     ),
+                    if (selectedRole == 'supervisor') ...[
+                      const SizedBox(height: 16),
+                      const Text(
+                        'Assign Construction Sites:',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 6),
+                      ..._availableSites.map((site) {
+                        final siteId = site['id']!;
+                        final siteName = site['name']!;
+                        final isAssigned = selectedSiteIds.contains(siteId);
+                        return CheckboxListTile(
+                          dense: true,
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(siteName, style: const TextStyle(fontSize: 13)),
+                          value: isAssigned,
+                          onChanged: (checked) {
+                            setDialogState(() {
+                              if (checked == true) {
+                                selectedSiteIds.add(siteId);
+                              } else {
+                                selectedSiteIds.remove(siteId);
+                              }
+                            });
+                          },
+                        );
+                      }),
+                    ],
                   ],
                 ),
               ),
@@ -176,7 +219,13 @@ class _AdminApprovalScreenState extends State<AdminApprovalScreen> {
                   key: const Key('confirmApprovalButton'),
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    _handleApprove(user, selectedRole);
+                    _handleApprove(
+                      user,
+                      selectedRole,
+                      selectedRole == 'supervisor'
+                          ? selectedSiteIds.toList()
+                          : const [],
+                    );
                   },
                   child: const Text('Approve & Grant Access'),
                 ),
