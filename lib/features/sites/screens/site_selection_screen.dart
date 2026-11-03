@@ -41,7 +41,8 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
   }
 
   void _connect() {
-    if (widget.sites == null && widget.profile?.role == 'manager') {
+    if (widget.sites == null &&
+        (widget.profile?.role == 'manager' || widget.profile?.role == 'admin')) {
       _sites = (widget.repository ?? FirestoreSiteRepository()).watchAllSites();
       return;
     }
@@ -117,8 +118,14 @@ class _SiteSelectionScreenState extends State<SiteSelectionScreen> {
             }
             final availableSites = snapshot.data!;
             if (availableSites.isEmpty) {
-              return const Center(
-                child: Text('No sites assigned. Contact your manager.'),
+              final isManager = widget.profile?.role == 'manager' ||
+                  widget.profile?.role == 'admin';
+              return Center(
+                child: Text(
+                  isManager
+                      ? 'No sites found in the system.'
+                      : 'No sites assigned. Contact your manager.',
+                ),
               );
             }
             return ListView.separated(
